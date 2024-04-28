@@ -4,7 +4,6 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -26,9 +25,9 @@ func ReadCSVtoRows(path string, options ...Options) ([][]string, error) {
 	// Read the file
 	data, err := os.ReadFile(path)
 	if err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Println("Error reading file:", path)
-		log.Fatal(err)
+		fmt.Println("Error reading file:", path)
+		fmt.Println(err)
+		os.Exit(1)
 		return [][]string{}, err
 	}
 
@@ -64,10 +63,11 @@ func ReadCSVtoRows(path string, options ...Options) ([][]string, error) {
 	if err != nil {
 		// ParseError
 		if _, ok := err.(*csv.ParseError); ok {
-			log.Println("Error: CSV file has parse error")
-			log.Println("This occurred while parsing the following file:", path)
+			fmt.Println("Error: CSV file has parse error")
+			fmt.Println("This occurred while parsing the following file:", path)
 		}
-		log.Fatal(err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
 	return rows, nil
@@ -255,36 +255,22 @@ func (df *DataFrame) Select(selectedColumn ...interface{}) *DataFrame {
 	// If the inner type is a slice, we need to change it to
 	// the correct type. If the inner type is a string, we
 	// If the inner type is an interface{}, we fail.
-	switch selectedColumn[0].(type) {
 
-	case []string, string:
-		columnNames := InterfaceToTypeSlice[string](selectedColumn)
-
-		newSeries := []Series{}
-		for _, columnName := range columnNames {
-			for _, series := range df.Series {
-				if series.Name == columnName {
-					newSeries = append(newSeries, series)
-				}
-			}
-		}
-		return &DataFrame{newSeries}
-
-	case []int, int:
-		columnIndexes := InterfaceToTypeSlice[int](selectedColumn)
-
-		newSeries := []Series{}
-		for _, index := range columnIndexes {
-			if index < 0 || index >= len(df.Series) {
-				fmt.Println("Index out of range")
-				return &DataFrame{}
-			}
-			newSeries = append(newSeries, df.Series[index])
-		}
-		return &DataFrame{newSeries}
+	columnNames, err := df.GetColumn(selectedColumn...)
+	if err != nil {
+		fmt.Println(err)
+		return &DataFrame{}
 	}
 
-	return &DataFrame{}
+	newSeries := []Series{}
+	for _, columnName := range columnNames {
+		for _, series := range df.Series {
+			if series.Name == columnName {
+				newSeries = append(newSeries, series)
+			}
+		}
+	}
+	return &DataFrame{newSeries}
 }
 
 func (df *DataFrame) PrintTable() {
@@ -409,7 +395,6 @@ func (df *DataFrame) GetColumnIndex(columnName string) (int, bool) {
 //   - header: bool (default: false)
 //     Whether to include the header in the output.
 func (df *DataFrame) WriteCSV(path string, options ...Options) error {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// Standardize the keys
 	optionsClean := standardizeMapKeys(options...)
@@ -443,8 +428,9 @@ func (df *DataFrame) WriteCSV(path string, options ...Options) error {
 	// Write the file
 	file, err := os.Create(path)
 	if err != nil {
-		log.Println("Error creating file:", path)
-		log.Fatal(err)
+		fmt.Println("Error creating file:", path)
+		fmt.Println(err)
+		os.Exit(1)
 		return err
 	}
 	defer file.Close()
@@ -454,16 +440,12 @@ func (df *DataFrame) WriteCSV(path string, options ...Options) error {
 
 	err1 := csvWriter.WriteAll(columns)
 	if err1 != nil {
-		log.Println("Error writing to file:", path)
-		log.Fatal(err1)
-		return err1
+		fmt.Println("Error writing to file:", path)
+		fmt.Println(err1)
+		os.Exit(1)
 	}
 
 	return nil
-}
-
-func addString(a, b string) string {
-	return a + b
 }
 
 func (df *DataFrame) Apply(newColumnName string, col1, col2 interface{}, f func(string, string) string) *DataFrame {
@@ -747,6 +729,48 @@ func (df *DataFrame) Apply4(newColumnName string, f func(...interface{}) interfa
 	return &DataFrame{newSeries}
 }
 
+func (df *DataFrame) Apply5(newColumnName string, f func(...interface{}) interface{}, cols ...interface{}) *DataFrame {
+
+	// Check if all values are of the same type
+	if !allSameType(cols) {
+		fmt.Println("All values must be of the same type")
+		return &DataFrame{}
+	}
+
+	// Get the column names
+	columns, err := df.GetColumn(cols...)
+	if err != nil {
+		fmt.Println(err)
+		return &DataFrame{}
+	}
+
+	// Get the column indexes
+	columnIndexs := []int{}
+	for _, columnName := range columns {
+		columnIndex, _ := df.GetColumnIndex(columnName)
+		columnIndexs = append(columnIndexs, columnIndex)
+	}
+
+	// Create the new column
+	newValues := []interface{}{}
+	for i := 0; i < len(df.Series[0].Values); i++ {
+
+		// List of Values to be used
+		values := []interface{}{}
+		for _, columnIndex := range columnIndexs {
+			values = append(values, df.Series[columnIndex].Values[i])
+		}
+
+		newValue := f(values...)
+		newValues = append(newValues, newValue)
+	}
+
+	// Add the new column to the DataFrame
+	df.Series = append(df.Series, Series{newValues, newColumnName})
+
+	return df
+}
+
 func main() {
 
 	// rows := ReadCSV("addresses.csv")
@@ -765,7 +789,8 @@ func main() {
 		"header":           true,
 	})
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
 	// df1 := df.Select("First Name", "Last Name", "Age")
@@ -819,21 +844,23 @@ func main() {
 	)
 	df6.Select("Age Squared", "Age Int", "Age").PrintTable()
 
+	// Test Droping Columns
+	df7 := df6.Drop("Age Squared", "Age Int")
+	df7.PrintTable()
+
 	// This shows you can pass a struct of column names.
-	df7 := df5.Apply4("Age Squared",
+	df8 := df5.Apply4("Age Squared",
 		func(a ...interface{}) interface{} {
 			return a[0].(int) * a[0].(int)
 		},
 		[]string{"Age Int"},
 	)
-	df7.Select("Age Squared", "Age Int", "Age").PrintTable()
-
-	df8 := df7.Drop("Age Squared", "Age Int")
-	df8.PrintTable()
+	df8.Select("Age Squared", "Age Int", "Age").PrintTable()
 
 	// Finish by writing the DataFrame to a CSV file
-	err1 := df8.WriteCSV("data/addresses_out.csv")
-	if err1 != nil {
-		log.Fatal(err)
-	}
+	// err1 := df8.WriteCSV("data/addresses_out.csv")
+	// if err1 != nil {
+	// 	fmt.Print(err)
+	// 	os.Exit(1)
+	// }
 }
