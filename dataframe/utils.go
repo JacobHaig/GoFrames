@@ -1,4 +1,4 @@
-package main
+package dataframe
 
 import (
 	"errors"
@@ -107,4 +107,30 @@ func SprintfStringSlice(slice []string) string {
 		list = append(list, fmt.Sprintf("\"%v\"", ele))
 	}
 	return "[" + strings.Join(list, ", ") + "]"
+}
+
+func TransposeRows(rows [][]string) [][]string {
+	// Create a new 2D array
+	transposed := make([][]string, len(rows[0]))
+	for i := range transposed {
+		transposed[i] = make([]string, len(rows))
+	}
+
+	// Transpose the 2D array
+	for rowIndex, row := range rows {
+		for colIndex, cell := range row {
+			transposed[colIndex][rowIndex] = cell
+		}
+	}
+
+	return transposed
+}
+
+func allTrue(values []bool) bool {
+	for _, value := range values {
+		if !value {
+			return false
+		}
+	}
+	return true
 }
