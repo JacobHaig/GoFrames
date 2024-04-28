@@ -19,41 +19,28 @@ func main() {
 		os.Exit(1)
 	}
 
-	// df1 := df.Select("First Name", "Last Name", "Age")
-	// df1.PrintTable()
+	df3 := df.Apply("Full Name",
+		func(a ...interface{}) interface{} {
+			return a[0].(string) + " " + a[1].(string)
+		},
+		"First Name", "Last Name",
+	)
+	df3.Select("Full Name", "First Name", "Last Name").PrintTable()
 
-	// Iteration 1
-	// df2 := df.Apply("Full Name",
-	// 	"First Name", "Last Name",
-	// 	func(a, b string) string {
-	// 		return a + " " + b
-	// 	})
-	// df2.Select("Full Name", "First Name", "Last Name").PrintTable()
-
-	// // This version takes a variadic number of columns
-	// df3 := df.Apply2("Full Name",
-	// 	func(a ...string) string {
-	// 		return a[0] + " " + a[1]
-	// 	},
-	// 	"First Name", "Last Name",
-	// )
-	// df3.Select("Full Name", "First Name", "Last Name").PrintTable()
-
-	// // This version takes a variadic number of columns.
-	// // This is showing that you can pass any number of columns.
-	// df4 := df.Apply2(
-	// 	"Full Address",
-	// 	func(a ...string) string {
-	// 		return a[0] + " " + a[1] + " " + a[2] + " " + a[3]
-	// 	},
-	// 	"Address", "City", "State", "Zip",
-	// )
-	// df4.Select("Full Address", "Address", "City", "State", "Zip").PrintTable()
+	df4 := df.Apply(
+		"Full Address",
+		func(a ...interface{}) interface{} {
+			return a[0].(string) + " " + a[1].(string) + " " + a[2].(string) + " " + a[3].(string)
+		},
+		"Address", "City", "State", "Zip",
+	)
+	df4.Select("Full Address", "Address", "City", "State", "Zip").PrintTable()
+	df4.Drop("Full Address")
 
 	// This version allows use to return a different type.
-	df5 := df.Apply3("Age Int",
-		func(a ...string) interface{} {
-			i, _ := strconv.Atoi(a[0])
+	df5 := df.Apply("Age Int",
+		func(a ...interface{}) interface{} {
+			i, _ := strconv.Atoi(a[0].(string))
 			return i
 		},
 		"Age",
@@ -62,7 +49,7 @@ func main() {
 
 	// This version allows use to use any type and return any type.
 	// We are required to assert the type we are using.
-	df6 := df5.Apply4("Age Squared",
+	df6 := df5.Apply("Age Squared",
 		func(a ...interface{}) interface{} {
 			return a[0].(int) * a[0].(int)
 		},
@@ -73,15 +60,6 @@ func main() {
 	// Test Droping Columns
 	df7 := df6.Drop("Age Squared", "Age Int")
 	df7.PrintTable()
-
-	// This shows you can pass a struct of column names.
-	df8 := df5.Apply4("Age Squared",
-		func(a ...interface{}) interface{} {
-			return a[0].(int) * a[0].(int)
-		},
-		[]string{"Age Int"},
-	)
-	df8.Select("Age Squared", "Age Int", "Age").PrintTable()
 
 	// Finish by writing the DataFrame to a CSV file
 	// err1 := df8.WriteCSV("data/addresses_out.csv")
