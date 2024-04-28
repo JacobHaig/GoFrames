@@ -141,6 +141,93 @@ func NewFromRows(rows [][]string, options ...Options) *DataFrame {
 	return &DataFrame{series}
 }
 
+func (df *DataFrame) allColumnsExist(columnNames []string) bool {
+	for _, columnName := range columnNames {
+		if _, ok := df.GetColumnIndex(columnName); !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func (df *DataFrame) findColumnsThatDontExist(columnNames []string) []string {
+	columns := []string{}
+	for _, columnName := range columnNames {
+		if _, ok := df.GetColumnIndex(columnName); !ok {
+			columns = append(columns, columnName)
+		}
+	}
+	return columns
+}
+
+// GetColumn returns the column names based on the selected columns.
+//
+// The selectedColumns can be a string, slice of strings, int, or slice of ints.
+// If the selectedColumns are strings, the function will return the column names
+// as strings. If the selectedColumns are ints, the function will return the
+// column names as ints.
+//
+// The function returns an error if one of the columns does not exist.
+func (df *DataFrame) GetColumn(selectedColumns ...interface{}) ([]string, error) {
+
+	if len(selectedColumns) == 0 {
+		return []string{}, nil
+	}
+
+	switch selectedColumns[0].(type) {
+	case []string, string:
+		columnNames := InterfaceToTypeSlice[string](selectedColumns)
+
+		// Check if all columns exist
+		allExist := df.allColumnsExist(columnNames)
+
+		if allExist {
+			return columnNames, nil
+		} else {
+			columns := df.findColumnsThatDontExist(columnNames)
+			return nil, errors.New("One of these columns do not exist: " + SprintfStringSlice(columns))
+		}
+
+	case []int, int:
+		columnIndexes := InterfaceToTypeSlice[int](selectedColumns)
+
+		columnNames := []string{}
+		for _, index := range columnIndexes {
+			if index < 0 || index >= len(df.Series) {
+				return nil, errors.New("Index out of range: " + fmt.Sprint(index))
+			}
+			columnNames = append(columnNames, df.Series[index].Name)
+		}
+		return columnNames, nil
+	}
+
+	return []string{}, nil
+}
+
+func (df *DataFrame) Drop(selectedColumn ...interface{}) *DataFrame {
+
+	if len(df.Series) == 0 {
+		return &DataFrame{}
+	}
+
+	// Check if all values are of the same type
+	columns, err := df.GetColumn(selectedColumn...)
+	if err != nil {
+		fmt.Println(err)
+		return &DataFrame{}
+	}
+
+	for _, columnName := range columns {
+		for index, series := range df.Series {
+			if series.Name == columnName {
+				df.Series = append(df.Series[:index], df.Series[index+1:]...)
+			}
+		}
+	}
+
+	return df
+}
+
 // Select returns a new DataFrame with the selected columns.
 //
 // Select does not create a copy of the data, it only creates a new DataFrame
@@ -171,7 +258,7 @@ func (df *DataFrame) Select(selectedColumn ...interface{}) *DataFrame {
 	switch selectedColumn[0].(type) {
 
 	case []string, string:
-		columnNames := FlattenInterfaceToTypeSlice[string](selectedColumn)
+		columnNames := InterfaceToTypeSlice[string](selectedColumn)
 
 		newSeries := []Series{}
 		for _, columnName := range columnNames {
@@ -184,7 +271,7 @@ func (df *DataFrame) Select(selectedColumn ...interface{}) *DataFrame {
 		return &DataFrame{newSeries}
 
 	case []int, int:
-		columnIndexes := FlattenInterfaceToTypeSlice[int](selectedColumn)
+		columnIndexes := InterfaceToTypeSlice[int](selectedColumn)
 
 		newSeries := []Series{}
 		for _, index := range columnIndexes {
@@ -336,7 +423,7 @@ func (df *DataFrame) WriteCSV(path string, options ...Options) error {
 
 	columns := [][]string{} // Todo: Change to [][]interface{}
 	for _, series := range df.Series {
-		seriesValues := FlattenInterfaceToTypeSlice[string](series.Values)
+		seriesValues := InterfaceToTypeSlice[string](series.Values)
 		columns = append(columns, seriesValues)
 	}
 
@@ -454,7 +541,7 @@ func (df *DataFrame) Apply2(newColumnName string, f func(...string) string, cols
 
 	switch cols[0].(type) {
 	case []string, string:
-		columnNames := FlattenInterfaceToTypeSlice[string](cols)
+		columnNames := InterfaceToTypeSlice[string](cols)
 
 		for _, columnName := range columnNames {
 			columnIndex, columnExist := df.GetColumnIndex(columnName)
@@ -463,7 +550,7 @@ func (df *DataFrame) Apply2(newColumnName string, f func(...string) string, cols
 		}
 
 	case []int, int:
-		columnIndexes := FlattenInterfaceToTypeSlice[int](cols)
+		columnIndexes := InterfaceToTypeSlice[int](cols)
 
 		for _, columnIndex := range columnIndexes {
 			columnIndexs = append(columnIndexs, columnIndex)
@@ -527,7 +614,7 @@ func (df *DataFrame) Apply3(newColumnName string, f func(...string) interface{},
 
 	switch cols[0].(type) {
 	case []string, string:
-		columnNames := FlattenInterfaceToTypeSlice[string](cols)
+		columnNames := InterfaceToTypeSlice[string](cols)
 
 		for _, columnName := range columnNames {
 			columnIndex, columnExist := df.GetColumnIndex(columnName)
@@ -536,7 +623,7 @@ func (df *DataFrame) Apply3(newColumnName string, f func(...string) interface{},
 		}
 
 	case []int, int:
-		columnIndexes := FlattenInterfaceToTypeSlice[int](cols)
+		columnIndexes := InterfaceToTypeSlice[int](cols)
 
 		for _, columnIndex := range columnIndexes {
 			columnIndexs = append(columnIndexs, columnIndex)
@@ -600,7 +687,7 @@ func (df *DataFrame) Apply4(newColumnName string, f func(...interface{}) interfa
 
 	switch cols[0].(type) {
 	case []string, string:
-		columnNames := FlattenInterfaceToTypeSlice[string](cols)
+		columnNames := InterfaceToTypeSlice[string](cols)
 
 		for _, columnName := range columnNames {
 			columnIndex, columnExist := df.GetColumnIndex(columnName)
@@ -609,7 +696,7 @@ func (df *DataFrame) Apply4(newColumnName string, f func(...interface{}) interfa
 		}
 
 	case []int, int:
-		columnIndexes := FlattenInterfaceToTypeSlice[int](cols)
+		columnIndexes := InterfaceToTypeSlice[int](cols)
 
 		for _, columnIndex := range columnIndexes {
 			columnIndexs = append(columnIndexs, columnIndex)
@@ -685,32 +772,32 @@ func main() {
 	// df1.PrintTable()
 
 	// Iteration 1
-	df2 := df.Apply("Full Name",
-		"First Name", "Last Name",
-		func(a, b string) string {
-			return a + " " + b
-		})
-	df2.Select("Full Name", "First Name", "Last Name").PrintTable()
+	// df2 := df.Apply("Full Name",
+	// 	"First Name", "Last Name",
+	// 	func(a, b string) string {
+	// 		return a + " " + b
+	// 	})
+	// df2.Select("Full Name", "First Name", "Last Name").PrintTable()
 
-	// This version takes a variadic number of columns
-	df3 := df.Apply2("Full Name",
-		func(a ...string) string {
-			return a[0] + " " + a[1]
-		},
-		"First Name", "Last Name",
-	)
-	df3.Select("Full Name", "First Name", "Last Name").PrintTable()
+	// // This version takes a variadic number of columns
+	// df3 := df.Apply2("Full Name",
+	// 	func(a ...string) string {
+	// 		return a[0] + " " + a[1]
+	// 	},
+	// 	"First Name", "Last Name",
+	// )
+	// df3.Select("Full Name", "First Name", "Last Name").PrintTable()
 
-	// This version takes a variadic number of columns.
-	// This is showing that you can pass any number of columns.
-	df4 := df.Apply2(
-		"Full Address",
-		func(a ...string) string {
-			return a[0] + " " + a[1] + " " + a[2] + " " + a[3]
-		},
-		"Address", "City", "State", "Zip",
-	)
-	df4.Select("Full Address", "Address", "City", "State", "Zip").PrintTable()
+	// // This version takes a variadic number of columns.
+	// // This is showing that you can pass any number of columns.
+	// df4 := df.Apply2(
+	// 	"Full Address",
+	// 	func(a ...string) string {
+	// 		return a[0] + " " + a[1] + " " + a[2] + " " + a[3]
+	// 	},
+	// 	"Address", "City", "State", "Zip",
+	// )
+	// df4.Select("Full Address", "Address", "City", "State", "Zip").PrintTable()
 
 	// This version allows use to return a different type.
 	df5 := df.Apply3("Age Int",
@@ -741,8 +828,11 @@ func main() {
 	)
 	df7.Select("Age Squared", "Age Int", "Age").PrintTable()
 
+	df8 := df7.Drop("Age Squared", "Age Int")
+	df8.PrintTable()
+
 	// Finish by writing the DataFrame to a CSV file
-	err1 := df7.WriteCSV("data/addresses_out.csv")
+	err1 := df8.WriteCSV("data/addresses_out.csv")
 	if err1 != nil {
 		log.Fatal(err)
 	}

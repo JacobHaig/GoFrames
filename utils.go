@@ -73,7 +73,7 @@ func flattenInterface[T interface{}](acc []T, arr interface{}) ([]T, error) {
 // FlattenInterface flattens a slice of slices of interfaces into a single slice of T
 //
 // This can flatten [][]interface{} into []T or []interface{} into []T
-func FlattenInterfaceToTypeSlice[T interface{}](values ...interface{}) []T {
+func InterfaceToTypeSlice[T interface{}](values ...interface{}) []T {
 	result, err := flattenInterface([]T{}, values)
 
 	if err != nil {
@@ -99,4 +99,12 @@ func PadLeft(str, pad string, length int) string {
 			return str[0:length]
 		}
 	}
+}
+
+func SprintfStringSlice(slice []string) string {
+	list := []string{}
+	for _, ele := range slice {
+		list = append(list, fmt.Sprintf("\"%v\"", ele))
+	}
+	return "[" + strings.Join(list, ", ") + "]"
 }
