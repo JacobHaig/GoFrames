@@ -113,3 +113,161 @@ func NewFromRows(rows [][]string, options ...Options) *DataFrame {
 
 	return &DataFrame{series}
 }
+
+// WriteCSV writes the DataFrame to a CSV file.
+//
+// The options can be used to control the output.
+// The options are:
+//   - header: bool (default: false)
+//     Whether to include the header in the output.
+func (df *DataFrame) WriteCSV(path string, options ...Options) error {
+
+	// Standardize the keys
+	optionsClean := standardizeMapKeys(options...)
+
+	header := []string{}
+	if val, ok := optionsClean["header"]; ok {
+		if val.(bool) {
+			header = df.GetColumnNames()
+		}
+	}
+
+	columns := [][]string{} // Todo: Change to [][]interface{}
+	for _, series := range df.Series {
+		seriesValues := InterfaceToTypeSlice[string](series.Values)
+		columns = append(columns, seriesValues)
+	}
+
+	// Transpose the columns
+	columns = TransposeRows(columns)
+
+	// Add the header
+	if len(header) > 0 {
+		columns = append([][]string{header}, columns...)
+	}
+
+	println("Columns:")
+	for _, column := range columns {
+		fmt.Println(column)
+	}
+
+	// Write the file
+	file, err := os.Create(path)
+	if err != nil {
+		fmt.Println("Error creating file:", path)
+		fmt.Println(err)
+		os.Exit(1)
+		return err
+	}
+	defer file.Close()
+
+	csvWriter := csv.NewWriter(file)
+	csvWriter.Comma = ','
+
+	err1 := csvWriter.WriteAll(columns)
+	if err1 != nil {
+		fmt.Println("Error writing to file:", path)
+		fmt.Println(err1)
+		os.Exit(1)
+	}
+
+	return nil
+}
+
+func (df *DataFrame) PrintTable() {
+	if len(df.Series) == 0 {
+		fmt.Println("Empty DataFrame")
+		return
+	}
+
+	// Calculate the max width of each column
+	widths := make([]int, len(df.Series))
+
+	// max header
+	for seriesIndex, series := range df.Series {
+		widths[seriesIndex] = max(widths[seriesIndex], len(series.Name))
+
+		for rowIndex := 0; rowIndex < len(df.Series[0].Values); rowIndex++ {
+			widths[seriesIndex] = max(widths[seriesIndex], len(fmt.Sprint(series.Values[rowIndex])))
+		}
+	}
+
+	// Print the header separator
+	fmt.Print("+-")
+	for index := range df.Series {
+		fmt.Print(PadRight("", "-", widths[index]))
+		if index < len(df.Series)-1 {
+			fmt.Print("-+-")
+		}
+	}
+	fmt.Println("-+ ")
+
+	// Print the header
+	fmt.Print("| ")
+	for index, series := range df.Series {
+		fmt.Print(PadRight(series.Name, " ", widths[index]))
+		if index < len(df.Series)-1 {
+			fmt.Print(" | ")
+		}
+	}
+	fmt.Println(" |")
+
+	// Print the body separator
+	fmt.Print("+-")
+	for index, width := range widths {
+		fmt.Print(PadRight("", "-", width))
+		if index < len(df.Series)-1 {
+			fmt.Print("-+-")
+		}
+	}
+	fmt.Println("-+")
+
+	// Print the DataFrame
+	for rowIndex := 0; rowIndex < len(df.Series[0].Values); rowIndex++ {
+		fmt.Print("| ")
+		for colIndex, series := range df.Series {
+			fmt.Print(PadRight(fmt.Sprint(series.Values[rowIndex]), " ", widths[colIndex]))
+			if colIndex < len(df.Series)-1 {
+				fmt.Print(" | ")
+			}
+		}
+		fmt.Println(" |")
+	}
+
+	// Print the footer separator
+	fmt.Print("+-")
+	for index := range df.Series {
+		fmt.Print(PadRight("", "-", widths[index]))
+		if index < len(df.Series)-1 {
+			fmt.Print("-+-")
+		}
+	}
+	fmt.Println("-+")
+}
+
+func (df *DataFrame) Print() {
+	if len(df.Series) == 0 {
+		fmt.Println("Empty DataFrame")
+		return
+	}
+
+	// Print the header
+	for index, series := range df.Series {
+		fmt.Print(series.Name)
+		if index < len(df.Series)-1 {
+			fmt.Print(", ")
+		}
+	}
+	fmt.Println("")
+
+	// Print the DataFrame
+	for rowIndex := 0; rowIndex < len(df.Series[0].Values); rowIndex++ {
+		for colIndex, series := range df.Series {
+			fmt.Print(series.Values[rowIndex])
+			if colIndex < len(df.Series)-1 {
+				fmt.Print(", ")
+			}
+		}
+		fmt.Println("")
+	}
+}
