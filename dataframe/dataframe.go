@@ -246,3 +246,38 @@ func (df *DataFrame) ApplyMap(newColumnName string, f func(map[string]interface{
 
 	return df
 }
+
+func (df *DataFrame) ApplySeries(newColumnName string, f func(...Series) Series, cols ...interface{}) *DataFrame {
+
+	// Get the column names
+	columns, err := df.GetColumn(cols...)
+	if err != nil {
+		fmt.Println(err)
+		return &DataFrame{}
+	}
+
+	// Get the column indexes
+	columnIndexs := []int{}
+	for _, columnName := range columns {
+		columnIndex, _ := df.GetColumnIndex(columnName)
+		columnIndexs = append(columnIndexs, columnIndex)
+	}
+
+	// Create the new column
+	newSeries := Series{}
+	for i := 0; i < len(df.Series[0].Values); i++ {
+
+		// List of Values to be used
+		series := []Series{}
+		for _, columnIndex := range columnIndexs {
+			series = append(series, df.Series[columnIndex])
+		}
+
+		newSeries = f(series...)
+	}
+
+	// Add the new column to the DataFrame
+	df.Series = append(df.Series, newSeries)
+
+	return df
+}
