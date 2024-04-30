@@ -59,6 +59,20 @@ func main() {
 	})
 	df8.Select("Full Address", "Address", "City", "State", "Zip").PrintTable()
 
+	// This version allows you to get the entire column as a slice. From
+	// there you can do whatever you want with it.
+	df9 := df8.ApplySeries("Age Cubed", func(s ...[]interface{}) []interface{} {
+		s1 := s[0]
+		s2 := make([]interface{}, len(s1))
+
+		for index, val := range s1 {
+			i, _ := strconv.Atoi(val.(string))
+			s2[index] = i * i * i
+		}
+		return s2
+	}, "Age")
+	df9.Select("Age Cubed", "Age Int", "Age").PrintTable()
+
 	// Finish by writing the DataFrame to a CSV file
 	// err1 := df8.WriteCSV("data/addresses_out.csv")
 	// if err1 != nil {
