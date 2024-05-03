@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-func main() {
+func test() {
 
 	df, err := dataframe.ReadCSV("data/addresses.csv", dataframe.Options{
 		"delimiter":        ',',
@@ -30,7 +30,7 @@ func main() {
 		}, "Address", "City", "State", "Zip")
 	df4.Select("Full Address", "Address", "City", "State", "Zip").PrintTable()
 
-	df4.Drop("Full Address")
+	df4.DropColumn("Full Address")
 
 	// This version allows use to return a different type.
 	df5 := df.Apply("Age Int", func(a ...interface{}) interface{} {
@@ -50,7 +50,7 @@ func main() {
 	}, "Age Int")
 	df6.Select("Age Squared", "Age Int", "Age").PrintTable()
 
-	df7 := df6.Drop("Age Squared")
+	df7 := df6.DropColumn("Age Squared")
 	df7.PrintTable()
 
 	// This version allows you to use a map to access the columns directly.
@@ -73,10 +73,30 @@ func main() {
 	}, "Age")
 	df9.Select("Age Cubed", "Age Int", "Age").PrintTable()
 
-	// Finish by writing the DataFrame to a CSV file
-	// err1 := df8.WriteCSV("data/addresses_out.csv")
-	// if err1 != nil {
-	// 	fmt.Print(err)
-	// 	os.Exit(1)
-	// }
+}
+
+func main() {
+
+	df, err := dataframe.ReadCSV("data/addresses.csv", dataframe.Options{
+		"delimiter":        ',',
+		"trimleadingspace": true,
+		"header":           true,
+	})
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	df3 := df.Apply("Full Name", func(a ...interface{}) interface{} {
+		return a[0].(string) + " " + a[1].(string)
+	}, "First Name", "Last Name")
+
+	df3.PrintTable()
+	df3.DropColumn("Full Name")
+
+	df.PrintTable()
+
+	df.DropRow(2)
+
+	df.PrintTable()
 }

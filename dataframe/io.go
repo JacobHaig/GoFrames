@@ -101,14 +101,14 @@ func NewFromRows(rows [][]string, options ...Options) *DataFrame {
 	rows = TransposeRows(rows)
 
 	// Create the Series
-	series := []Series{}
+	series := []*Series{}
 
 	for index, row := range rows {
 		newRow := []interface{}{}
 		for _, cell := range row {
 			newRow = append(newRow, cell)
 		}
-		series = append(series, Series{newRow, header[index]})
+		series = append(series, &Series{header[index], newRow})
 	}
 
 	return &DataFrame{series}

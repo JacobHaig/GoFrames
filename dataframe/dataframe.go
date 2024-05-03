@@ -3,18 +3,49 @@ package dataframe
 import (
 	"errors"
 	"fmt"
+	"slices"
 )
 
 type DataFrame struct {
-	Series []Series
+	Series []*Series
 }
 
 type Series struct {
-	Values []interface{}
 	Name   string
+	Values []interface{}
 }
 
-// type Any interface{}
+func (s *Series) Rename(newName string) *Series {
+	s.Name = newName
+	return s
+}
+
+// Copy returns a new Series with the same values as the original Series.
+//
+// If deep is set to true, the function will create a deep copy of the Series.
+func (s *Series) Copy(deep bool) *Series {
+	if deep {
+		newValues := make([]interface{}, len(s.Values))
+		copy(newValues, s.Values)
+		return &Series{s.Name, newValues}
+	}
+	return &Series{s.Name, s.Values}
+}
+
+func (s *Series) Len() int {
+	return len(s.Values)
+}
+
+func (s *Series) DropRow(index int) *Series {
+	s.Values = slices.Replace(s.Values, index, index+1)
+	return s
+}
+func (df *DataFrame) DropRow(index int) *DataFrame {
+	for _, series := range df.Series {
+		series.DropRow(index)
+	}
+	return df
+}
 
 func (df *DataFrame) allColumnsExist(columnNames []string) bool {
 	for _, columnName := range columnNames {
@@ -39,8 +70,8 @@ func (df *DataFrame) findColumnsThatDontExist(columnNames []string) []string {
 //
 // The selectedColumns can be a string, slice of strings, int, or slice of ints.
 // If the selectedColumns are strings, the function will return the column names
-// as strings. If the selectedColumns are ints, the function will return the
-// column names as ints.
+// as strings. If the selectedColumns are ints, the function will also return the
+// column names.
 //
 // The function returns an error if one of the columns does not exist.
 func (df *DataFrame) GetColumn(selectedColumns ...interface{}) ([]string, error) {
@@ -79,7 +110,7 @@ func (df *DataFrame) GetColumn(selectedColumns ...interface{}) ([]string, error)
 	return []string{}, nil
 }
 
-func (df *DataFrame) Drop(selectedColumn ...interface{}) *DataFrame {
+func (df *DataFrame) DropColumn(selectedColumn ...interface{}) *DataFrame {
 
 	if len(df.Series) == 0 {
 		return &DataFrame{}
@@ -95,7 +126,8 @@ func (df *DataFrame) Drop(selectedColumn ...interface{}) *DataFrame {
 	for _, columnName := range columns {
 		for index, series := range df.Series {
 			if series.Name == columnName {
-				df.Series = append(df.Series[:index], df.Series[index+1:]...)
+				// df.Series = append(df.Series[:index], df.Series[index+1:]...)
+				df.Series = slices.Delete(df.Series, index, index+1)
 			}
 		}
 	}
@@ -137,7 +169,7 @@ func (df *DataFrame) Select(selectedColumn ...interface{}) *DataFrame {
 		return &DataFrame{}
 	}
 
-	newSeries := []Series{}
+	newSeries := []*Series{}
 	for _, columnName := range columnNames {
 		for _, series := range df.Series {
 			if series.Name == columnName {
@@ -211,7 +243,7 @@ func (df *DataFrame) Apply(newColumnName string, f func(...interface{}) interfac
 	}
 
 	// Add the new column to the DataFrame
-	df.Series = append(df.Series, Series{newValues, newColumnName})
+	df.Series = append(df.Series, &Series{newColumnName, newValues})
 
 	return df
 }
@@ -242,7 +274,7 @@ func (df *DataFrame) ApplyMap(newColumnName string, f func(map[string]interface{
 	}
 
 	// Add the new column to the DataFrame
-	df.Series = append(df.Series, Series{newValues, newColumnName})
+	df.Series = append(df.Series, &Series{newColumnName, newValues})
 
 	return df
 }
@@ -277,7 +309,7 @@ func (df *DataFrame) ApplySeries(newColumnName string, f func(...[]interface{}) 
 	}
 
 	// Add the new column to the DataFrame
-	df.Series = append(df.Series, Series{newValue, newColumnName})
+	df.Series = append(df.Series, &Series{newColumnName, newValue})
 
 	return df
 }
