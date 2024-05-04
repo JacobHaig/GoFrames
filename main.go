@@ -95,19 +95,12 @@ func main() {
 
 	series := df3.GetSeries("Full Name")
 	df3.DropColumn("Full Name")
+	df.PrintTable()
 
-	for _, value := range series.Values {
-		value = value.(string) + "!"
+	for i := range series.Values {
+		series.Values[i] = series.Values[i].(string) + "!"
 	}
-	df.PrintTable()
+
 	df3.AddSeries(series)
-
-	df.PrintTable()
-
-	columns := df.GetColumnNames()
-	fmt.Println("Columns:", columns)
-
-	df.DropColumn(columns)
-
 	df.PrintTable()
 }
