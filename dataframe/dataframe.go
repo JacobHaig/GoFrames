@@ -7,11 +7,11 @@ import (
 )
 
 type DataFrame struct {
-	Series []*Series
+	series []*Series
 }
 
 func (df *DataFrame) DropRow(index int) *DataFrame {
-	for _, series := range df.Series {
+	for _, series := range df.series {
 		series.DropRow(index)
 	}
 	return df
@@ -69,10 +69,10 @@ func (df *DataFrame) GetColumn(selectedColumns ...interface{}) ([]string, error)
 
 		columnNames := []string{}
 		for _, index := range columnIndexes {
-			if index < 0 || index >= len(df.Series) {
+			if index < 0 || index >= len(df.series) {
 				return nil, errors.New("Index out of range: " + fmt.Sprint(index))
 			}
-			columnNames = append(columnNames, df.Series[index].Name)
+			columnNames = append(columnNames, df.series[index].Name)
 		}
 		return columnNames, nil
 	}
@@ -82,7 +82,7 @@ func (df *DataFrame) GetColumn(selectedColumns ...interface{}) ([]string, error)
 
 func (df *DataFrame) DropColumn(selectedColumn ...interface{}) *DataFrame {
 
-	if len(df.Series) == 0 {
+	if len(df.series) == 0 {
 		return &DataFrame{}
 	}
 
@@ -94,9 +94,9 @@ func (df *DataFrame) DropColumn(selectedColumn ...interface{}) *DataFrame {
 	}
 
 	for _, columnName := range columns {
-		for index, series := range df.Series {
+		for index, series := range df.series {
 			if series.Name == columnName {
-				df.Series = slices.Delete(df.Series, index, index+1)
+				df.series = slices.Delete(df.series, index, index+1)
 				break
 			}
 		}
@@ -117,7 +117,7 @@ func (df *DataFrame) Select(selectedColumn ...interface{}) *DataFrame {
 	// If a slice of T is passed in, we access it by taking
 	// the first element, which is a slice of T.
 
-	if len(df.Series) == 0 {
+	if len(df.series) == 0 {
 		return &DataFrame{}
 	}
 
@@ -141,7 +141,7 @@ func (df *DataFrame) Select(selectedColumn ...interface{}) *DataFrame {
 
 	newSeries := []*Series{}
 	for _, columnName := range columnNames {
-		for _, series := range df.Series {
+		for _, series := range df.series {
 			if series.Name == columnName {
 				newSeries = append(newSeries, series)
 			}
@@ -150,15 +150,34 @@ func (df *DataFrame) Select(selectedColumn ...interface{}) *DataFrame {
 	return &DataFrame{newSeries}
 }
 
+// GetSeries returns a slice of Series based on the column name.
+//
+// The function returns a completely new slice of Series. This means that
+// the original DataFrame is not affected by the function.
+func (df *DataFrame) GetSeries(columnName string) *Series {
+	series := &Series{}
+	for _, s := range df.series {
+		if s.Name == columnName {
+			series = s.Copy(true)
+		}
+	}
+	return series
+}
+
+func (df *DataFrame) AddSeries(series *Series) *DataFrame {
+	df.series = append(df.series, series)
+	return df
+}
+
 func (df *DataFrame) Width() int {
-	return len(df.Series)
+	return len(df.series)
 }
 
 func (df *DataFrame) Height() int {
-	if len(df.Series) == 0 {
+	if len(df.series) == 0 {
 		return 0
 	}
-	return len(df.Series[0].Values)
+	return len(df.series[0].Values)
 }
 
 // Shape returns the height and width of the DataFrame.
@@ -166,7 +185,7 @@ func (df *DataFrame) Height() int {
 // The height is the number of rows in the DataFrame.
 // The width is the number of columns in the DataFrame.
 func (df *DataFrame) Shape() (int, int) {
-	if len(df.Series) == 0 {
+	if len(df.series) == 0 {
 		return 0, 0
 	}
 	return df.Height(), df.Width()
@@ -174,14 +193,14 @@ func (df *DataFrame) Shape() (int, int) {
 
 func (df *DataFrame) GetColumnNames() []string {
 	columns := []string{}
-	for _, series := range df.Series {
+	for _, series := range df.series {
 		columns = append(columns, series.Name)
 	}
 	return columns
 }
 
 func (df *DataFrame) GetColumnIndex(columnName string) (int, bool) {
-	for index, series := range df.Series {
+	for index, series := range df.series {
 		if series.Name == columnName {
 			return index, true
 		}
@@ -190,9 +209,9 @@ func (df *DataFrame) GetColumnIndex(columnName string) (int, bool) {
 }
 
 func (df *DataFrame) Rename(oldColumnName, newColumnName string) *DataFrame {
-	for index, series := range df.Series {
+	for index, series := range df.series {
 		if series.Name == oldColumnName {
-			df.Series[index].Name = newColumnName
+			df.series[index].Name = newColumnName
 		}
 	}
 	return df
@@ -222,12 +241,12 @@ func (df *DataFrame) Apply(newColumnName string, f func(...interface{}) interfac
 
 	// Create the new column
 	newValues := []interface{}{}
-	for i := 0; i < len(df.Series[0].Values); i++ {
+	for i := 0; i < len(df.series[0].Values); i++ {
 
 		// List of Values to be used
 		values := []interface{}{}
 		for _, columnIndex := range columnIndexs {
-			values = append(values, df.Series[columnIndex].Values[i])
+			values = append(values, df.series[columnIndex].Values[i])
 		}
 
 		newValue := f(values...)
@@ -235,7 +254,7 @@ func (df *DataFrame) Apply(newColumnName string, f func(...interface{}) interfac
 	}
 
 	// Add the new column to the DataFrame
-	df.Series = append(df.Series, &Series{newColumnName, newValues})
+	df.series = append(df.series, &Series{newColumnName, newValues})
 
 	return df
 }
@@ -253,12 +272,12 @@ func (df *DataFrame) ApplyMap(newColumnName string, f func(map[string]interface{
 
 	// Create the new column
 	newValues := []interface{}{}
-	for i := 0; i < len(df.Series[0].Values); i++ {
+	for i := 0; i < len(df.series[0].Values); i++ {
 
 		// List of Values to be used
 		valuemap := map[string]interface{}{}
 		for _, columnIndex := range columnIndexs {
-			valuemap[df.Series[columnIndex].Name] = df.Series[columnIndex].Values[i]
+			valuemap[df.series[columnIndex].Name] = df.series[columnIndex].Values[i]
 		}
 
 		newValue := f(valuemap)
@@ -266,7 +285,7 @@ func (df *DataFrame) ApplyMap(newColumnName string, f func(map[string]interface{
 	}
 
 	// Add the new column to the DataFrame
-	df.Series = append(df.Series, &Series{newColumnName, newValues})
+	df.series = append(df.series, &Series{newColumnName, newValues})
 
 	return df
 }
@@ -289,19 +308,19 @@ func (df *DataFrame) ApplySeries(newColumnName string, f func(...[]interface{}) 
 
 	// Create the new column
 	newValue := []interface{}{}
-	for i := 0; i < len(df.Series[0].Values); i++ {
+	for i := 0; i < len(df.series[0].Values); i++ {
 
 		// List of Values to be used
 		values := [][]interface{}{}
 		for _, columnIndex := range columnIndexs {
-			values = append(values, df.Series[columnIndex].Values)
+			values = append(values, df.series[columnIndex].Values)
 		}
 
 		newValue = f(values...)
 	}
 
 	// Add the new column to the DataFrame
-	df.Series = append(df.Series, &Series{newColumnName, newValue})
+	df.series = append(df.series, &Series{newColumnName, newValue})
 
 	return df
 }

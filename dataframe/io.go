@@ -133,7 +133,7 @@ func (df *DataFrame) WriteCSV(path string, options ...Options) error {
 	}
 
 	columns := [][]string{} // Todo: Change to [][]interface{}
-	for _, series := range df.Series {
+	for _, series := range df.series {
 		seriesValues := InterfaceToTypeSlice[string](series.Values)
 		columns = append(columns, seriesValues)
 	}
@@ -184,7 +184,7 @@ func (df *DataFrame) PrintTable() {
 	widths := make([]int, df.Width())
 
 	// max header
-	for seriesIndex, series := range df.Series {
+	for seriesIndex, series := range df.series {
 		widths[seriesIndex] = max(widths[seriesIndex], len(series.Name))
 
 		for rowIndex := 0; rowIndex < df.Height(); rowIndex++ {
@@ -194,7 +194,7 @@ func (df *DataFrame) PrintTable() {
 
 	// Print the header separator
 	fmt.Print("+-")
-	for index := range df.Series {
+	for index := range df.series {
 		fmt.Print(PadRight("", "-", widths[index]))
 		if index < df.Width()-1 {
 			fmt.Print("-+-")
@@ -204,7 +204,7 @@ func (df *DataFrame) PrintTable() {
 
 	// Print the header
 	fmt.Print("| ")
-	for index, series := range df.Series {
+	for index, series := range df.series {
 		fmt.Print(PadRight(series.Name, " ", widths[index]))
 		if index < df.Width()-1 {
 			fmt.Print(" | ")
@@ -225,7 +225,7 @@ func (df *DataFrame) PrintTable() {
 	// Print the DataFrame
 	for rowIndex := 0; rowIndex < df.Height(); rowIndex++ {
 		fmt.Print("| ")
-		for colIndex, series := range df.Series {
+		for colIndex, series := range df.series {
 			fmt.Print(PadRight(fmt.Sprint(series.Values[rowIndex]), " ", widths[colIndex]))
 			if colIndex < df.Width()-1 {
 				fmt.Print(" | ")
@@ -236,7 +236,7 @@ func (df *DataFrame) PrintTable() {
 
 	// Print the footer separator
 	fmt.Print("+-")
-	for index := range df.Series {
+	for index := range df.series {
 		fmt.Print(PadRight("", "-", widths[index]))
 		if index < df.Width()-1 {
 			fmt.Print("-+-")
@@ -252,7 +252,7 @@ func (df *DataFrame) Print() {
 	}
 
 	// Print the header
-	for index, series := range df.Series {
+	for index, series := range df.series {
 		fmt.Print(series.Name)
 		if index < df.Width()-1 {
 			fmt.Print(", ")
@@ -262,7 +262,7 @@ func (df *DataFrame) Print() {
 
 	// Print the DataFrame
 	for rowIndex := 0; rowIndex < df.Height(); rowIndex++ {
-		for colIndex, series := range df.Series {
+		for colIndex, series := range df.series {
 			fmt.Print(series.Values[rowIndex])
 			if colIndex < df.Width()-1 {
 				fmt.Print(", ")

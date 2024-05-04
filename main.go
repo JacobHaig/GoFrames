@@ -92,11 +92,15 @@ func main() {
 	}, "First Name", "Last Name")
 
 	df3.PrintTable()
+
+	series := df3.GetSeries("Full Name")
 	df3.DropColumn("Full Name")
 
+	for _, value := range series.Values {
+		value = value.(string) + "!"
+	}
 	df.PrintTable()
-
-	df.DropRow(2)
+	df3.AddSeries(series)
 
 	df.PrintTable()
 
