@@ -217,13 +217,13 @@ func (df *DataFrame) Rename(oldColumnName, newColumnName string) *DataFrame {
 	return df
 }
 
-func (df *DataFrame) Apply(newColumnName string, f func(...interface{}) interface{}, cols ...interface{}) *DataFrame {
+func (df *DataFrame) ApplyIndex(newColumnName string, f func(...interface{}) interface{}, cols ...interface{}) *DataFrame {
 
-	// Check if all values are of the same type
-	if !allSameType(cols) {
-		fmt.Println("All values must be of the same type")
-		return &DataFrame{}
-	}
+	// // Check if all values are of the same type
+	// if !allSameType(cols) {
+	// 	fmt.Println("All values must be of the same type")
+	// 	return &DataFrame{}
+	// }
 
 	// Get the column names
 	columns, err := df.GetColumn(cols...)
@@ -325,6 +325,45 @@ func (df *DataFrame) ApplySeries(newColumnName string, f func(...[]interface{}) 
 	return df
 }
 
+func (df *DataFrame) FilterIndex(f func(...interface{}) bool, cols ...interface{}) *DataFrame {
+	// Get the column names
+	columns, err := df.GetColumn(cols...)
+	if err != nil {
+		fmt.Println(err)
+		return &DataFrame{}
+	}
+
+	// Get the column indexes
+	columnIndexs := []int{}
+	for _, columnName := range columns {
+		columnIndex, _ := df.GetColumnIndex(columnName)
+		columnIndexs = append(columnIndexs, columnIndex)
+	}
+
+	// Create the new column
+	newValues := []interface{}{}
+	for i := 0; i < df.Height(); i++ {
+
+		// List of Values to be used
+		values := []interface{}{}
+		for _, columnIndex := range columnIndexs {
+			values = append(values, df.series[columnIndex].Values[i])
+		}
+
+		boolValue := f(values...)
+		newValues = append(newValues, boolValue)
+	}
+
+	// Remove the rows that are false
+	for i := df.Height() - 1; i >= 0; i-- {
+		if !newValues[i].(bool) {
+			df.DropRow(i)
+		}
+	}
+
+	return df
+}
+
 func (df *DataFrame) FilterMap(f func(map[string]interface{}) bool) *DataFrame {
 
 	columns := df.GetColumnNames()
@@ -349,8 +388,6 @@ func (df *DataFrame) FilterMap(f func(map[string]interface{}) bool) *DataFrame {
 		boolValue := f(valuemap)
 		newValues = append(newValues, boolValue)
 	}
-
-	fmt.Println(newValues)
 
 	// Remove the rows that are false
 	for i := df.Height() - 1; i >= 0; i-- {

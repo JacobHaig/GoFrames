@@ -19,12 +19,12 @@ func test() {
 		os.Exit(1)
 	}
 
-	df3 := df.Apply("Full Name", func(a ...interface{}) interface{} {
+	df3 := df.ApplyIndex("Full Name", func(a ...interface{}) interface{} {
 		return a[0].(string) + " " + a[1].(string)
 	}, "First Name", "Last Name")
 	df3.Select("Full Name", "First Name", "Last Name").PrintTable()
 
-	df4 := df.Apply(
+	df4 := df.ApplyIndex(
 		"Full Address", func(a ...interface{}) interface{} {
 			return a[0].(string) + " " + a[1].(string) + " " + a[2].(string) + " " + a[3].(string)
 		}, "Address", "City", "State", "Zip")
@@ -33,7 +33,7 @@ func test() {
 	df4.DropColumn("Full Address")
 
 	// This version allows use to return a different type.
-	df5 := df.Apply("Age Int", func(a ...interface{}) interface{} {
+	df5 := df.ApplyIndex("Age Int", func(a ...interface{}) interface{} {
 		i, _ := strconv.Atoi(a[0].(string))
 		return i
 	}, "Age")
@@ -45,7 +45,7 @@ func test() {
 
 	// This version allows use to use any type and return any type.
 	// We are required to assert the type we are using.
-	df6 := df5.Apply("Age Squared", func(a ...interface{}) interface{} {
+	df6 := df5.ApplyIndex("Age Squared", func(a ...interface{}) interface{} {
 		return a[0].(int) * a[0].(int)
 	}, "Age Int")
 	df6.Select("Age Squared", "Age Int", "Age").PrintTable()
@@ -87,7 +87,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	df3 := df.Apply("Full Name", func(a ...interface{}) interface{} {
+	df3 := df.ApplyIndex("Full Name", func(a ...interface{}) interface{} {
 		return a[0].(string) + " " + a[1].(string)
 	}, "First Name", "Last Name")
 
@@ -106,8 +106,14 @@ func main() {
 	df3.DropColumn("Full Name")
 	df3.PrintTable()
 
+	df5 := df3.FilterIndex(func(a ...interface{}) bool {
+		return a[0].(string) != "Tyler"
+	}, "Last Name")
+	df5.PrintTable()
+
 	df4 := df3.FilterMap(func(m map[string]interface{}) bool {
 		return m["First Name"].(string) != "Jack"
 	})
 	df4.PrintTable()
+
 }
