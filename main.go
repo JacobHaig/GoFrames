@@ -95,12 +95,19 @@ func main() {
 
 	series := df3.GetSeries("Full Name")
 	df3.DropColumn("Full Name")
-	df.PrintTable()
+	df3.PrintTable()
 
 	for i := range series.Values {
 		series.Values[i] = series.Values[i].(string) + "!"
 	}
 
 	df3.AddSeries(series)
-	df.PrintTable()
+	df3.PrintTable()
+	df3.DropColumn("Full Name")
+	df3.PrintTable()
+
+	df4 := df3.FilterMap(func(m map[string]interface{}) bool {
+		return m["First Name"].(string) != "Jack"
+	})
+	df4.PrintTable()
 }

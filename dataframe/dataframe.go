@@ -241,7 +241,7 @@ func (df *DataFrame) Apply(newColumnName string, f func(...interface{}) interfac
 
 	// Create the new column
 	newValues := []interface{}{}
-	for i := 0; i < len(df.series[0].Values); i++ {
+	for i := 0; i < df.Height(); i++ {
 
 		// List of Values to be used
 		values := []interface{}{}
@@ -272,7 +272,7 @@ func (df *DataFrame) ApplyMap(newColumnName string, f func(map[string]interface{
 
 	// Create the new column
 	newValues := []interface{}{}
-	for i := 0; i < len(df.series[0].Values); i++ {
+	for i := 0; i < df.Height(); i++ {
 
 		// List of Values to be used
 		valuemap := map[string]interface{}{}
@@ -308,7 +308,7 @@ func (df *DataFrame) ApplySeries(newColumnName string, f func(...[]interface{}) 
 
 	// Create the new column
 	newValue := []interface{}{}
-	for i := 0; i < len(df.series[0].Values); i++ {
+	for i := 0; i < df.Height(); i++ {
 
 		// List of Values to be used
 		values := [][]interface{}{}
@@ -321,6 +321,43 @@ func (df *DataFrame) ApplySeries(newColumnName string, f func(...[]interface{}) 
 
 	// Add the new column to the DataFrame
 	df.series = append(df.series, &Series{newColumnName, newValue})
+
+	return df
+}
+
+func (df *DataFrame) FilterMap(f func(map[string]interface{}) bool) *DataFrame {
+
+	columns := df.GetColumnNames()
+
+	// Get the column indexes
+	columnIndexs := []int{}
+	for _, columnName := range columns {
+		columnIndex, _ := df.GetColumnIndex(columnName)
+		columnIndexs = append(columnIndexs, columnIndex)
+	}
+
+	// Create the new column
+	newValues := []interface{}{}
+	for i := 0; i < df.Height(); i++ {
+
+		// List of Values to be used
+		valuemap := map[string]interface{}{}
+		for _, columnIndex := range columnIndexs {
+			valuemap[df.series[columnIndex].Name] = df.series[columnIndex].Values[i]
+		}
+
+		boolValue := f(valuemap)
+		newValues = append(newValues, boolValue)
+	}
+
+	fmt.Println(newValues)
+
+	// Remove the rows that are false
+	for i := df.Height() - 1; i >= 0; i-- {
+		if !newValues[i].(bool) {
+			df.DropRow(i)
+		}
+	}
 
 	return df
 }
