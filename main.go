@@ -99,4 +99,11 @@ func main() {
 	df.DropRow(2)
 
 	df.PrintTable()
+
+	columns := df.GetColumnNames()
+	fmt.Println("Columns:", columns)
+
+	df.DropColumn(columns)
+
+	df.PrintTable()
 }

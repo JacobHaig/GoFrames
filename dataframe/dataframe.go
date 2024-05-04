@@ -10,36 +10,6 @@ type DataFrame struct {
 	Series []*Series
 }
 
-type Series struct {
-	Name   string
-	Values []interface{}
-}
-
-func (s *Series) Rename(newName string) *Series {
-	s.Name = newName
-	return s
-}
-
-// Copy returns a new Series with the same values as the original Series.
-//
-// If deep is set to true, the function will create a deep copy of the Series.
-func (s *Series) Copy(deep bool) *Series {
-	if deep {
-		newValues := make([]interface{}, len(s.Values))
-		copy(newValues, s.Values)
-		return &Series{s.Name, newValues}
-	}
-	return &Series{s.Name, s.Values}
-}
-
-func (s *Series) Len() int {
-	return len(s.Values)
-}
-
-func (s *Series) DropRow(index int) *Series {
-	s.Values = slices.Replace(s.Values, index, index+1)
-	return s
-}
 func (df *DataFrame) DropRow(index int) *DataFrame {
 	for _, series := range df.Series {
 		series.DropRow(index)
@@ -126,8 +96,8 @@ func (df *DataFrame) DropColumn(selectedColumn ...interface{}) *DataFrame {
 	for _, columnName := range columns {
 		for index, series := range df.Series {
 			if series.Name == columnName {
-				// df.Series = append(df.Series[:index], df.Series[index+1:]...)
 				df.Series = slices.Delete(df.Series, index, index+1)
+				break
 			}
 		}
 	}
@@ -178,6 +148,28 @@ func (df *DataFrame) Select(selectedColumn ...interface{}) *DataFrame {
 		}
 	}
 	return &DataFrame{newSeries}
+}
+
+func (df *DataFrame) Width() int {
+	return len(df.Series)
+}
+
+func (df *DataFrame) Height() int {
+	if len(df.Series) == 0 {
+		return 0
+	}
+	return len(df.Series[0].Values)
+}
+
+// Shape returns the height and width of the DataFrame.
+//
+// The height is the number of rows in the DataFrame.
+// The width is the number of columns in the DataFrame.
+func (df *DataFrame) Shape() (int, int) {
+	if len(df.Series) == 0 {
+		return 0, 0
+	}
+	return df.Height(), df.Width()
 }
 
 func (df *DataFrame) GetColumnNames() []string {
