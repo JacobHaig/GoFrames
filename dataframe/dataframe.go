@@ -10,10 +10,37 @@ type DataFrame struct {
 	series []*Series
 }
 
+func NewDataFrame(series ...*Series) *DataFrame {
+	return &DataFrame{series}
+}
+
 func (df *DataFrame) DropRow(index int) *DataFrame {
 	for _, series := range df.series {
 		series.DropRow(index)
 	}
+	return df
+}
+
+func (df *DataFrame) DropRows(indexes ...int) *DataFrame {
+	// Sort the indexes in reverse order.
+	slices.Sort(indexes)
+	slices.Reverse(indexes)
+
+	for i := range indexes {
+		df.DropRow(indexes[i])
+	}
+	return df
+}
+
+func (df *DataFrame) DropRowsBySeries(series *Series) *DataFrame {
+	// Convert the Series to a list of indexes
+	indexes := []int{}
+	for _, value := range series.Values {
+		indexes = append(indexes, value.(int))
+	}
+
+	df = df.DropRows(indexes...)
+
 	return df
 }
 
@@ -165,7 +192,36 @@ func (df *DataFrame) GetSeries(columnName string) *Series {
 }
 
 func (df *DataFrame) AddSeries(series *Series) *DataFrame {
+	// If the DataFrame is empty, add the Series
+	if df.Width() == 0 {
+		df.series = append(df.series, series)
+		return df
+	}
+
+	// Check if the Series is the same length as the DataFrame
+	if len(series.Values) != df.Height() {
+		fmt.Println("Series must be the same length as the DataFrame")
+		return df
+	}
+
 	df.series = append(df.series, series)
+	return df
+}
+
+func (df *DataFrame) AddRow(row []interface{}) *DataFrame {
+	if df.Width() == 0 {
+		return df
+	}
+
+	if len(row) != df.Width() {
+		fmt.Println("Row must be the same length as the DataFrame")
+		return df
+	}
+
+	for index, value := range row {
+		df.series[index].Values = append(df.series[index].Values, value)
+	}
+
 	return df
 }
 
@@ -254,7 +310,7 @@ func (df *DataFrame) ApplyIndex(newColumnName string, f func(...interface{}) int
 	}
 
 	// Add the new column to the DataFrame
-	df.series = append(df.series, &Series{newColumnName, newValues})
+	df.series = append(df.series, NewSeries(newColumnName, newValues))
 
 	return df
 }
@@ -285,7 +341,7 @@ func (df *DataFrame) ApplyMap(newColumnName string, f func(map[string]interface{
 	}
 
 	// Add the new column to the DataFrame
-	df.series = append(df.series, &Series{newColumnName, newValues})
+	df.series = append(df.series, NewSeries(newColumnName, newValues))
 
 	return df
 }
@@ -320,7 +376,7 @@ func (df *DataFrame) ApplySeries(newColumnName string, f func(...[]interface{}) 
 	}
 
 	// Add the new column to the DataFrame
-	df.series = append(df.series, &Series{newColumnName, newValue})
+	df.series = append(df.series, NewSeries(newColumnName, newValue))
 
 	return df
 }
@@ -389,12 +445,60 @@ func (df *DataFrame) FilterMap(f func(map[string]interface{}) bool) *DataFrame {
 		newValues = append(newValues, boolValue)
 	}
 
-	// Remove the rows that are false
-	for i := df.Height() - 1; i >= 0; i-- {
+	// Get the indexes of the rows that are false
+	indexes := []int{}
+	for i := 0; i < df.Height(); i++ {
 		if !newValues[i].(bool) {
-			df.DropRow(i)
+			indexes = append(indexes, i)
 		}
 	}
+
+	// Remove the rows that are false
+	df = df.DropRows(indexes...)
+
+	return df
+}
+
+func (df *DataFrame) FilterSeries(f func(...[]interface{}) bool, cols ...interface{}) *DataFrame {
+
+	// Get the column names
+	columns, err := df.GetColumn(cols...)
+	if err != nil {
+		fmt.Println(err)
+		return &DataFrame{}
+	}
+
+	// Get the column indexes
+	columnIndexs := []int{}
+	for _, columnName := range columns {
+		columnIndex, _ := df.GetColumnIndex(columnName)
+		columnIndexs = append(columnIndexs, columnIndex)
+	}
+
+	// Create the new column
+	newValues := []interface{}{}
+	for i := 0; i < df.Height(); i++ {
+
+		// List of Values to be used
+		values := [][]interface{}{}
+		for _, columnIndex := range columnIndexs {
+			values = append(values, df.series[columnIndex].Values)
+		}
+
+		boolValue := f(values...)
+		newValues = append(newValues, boolValue)
+	}
+
+	// Get the indexes of the rows that are false
+	indexes := []int{}
+	for i := 0; i < df.Height(); i++ {
+		if !newValues[i].(bool) {
+			indexes = append(indexes, i)
+		}
+	}
+
+	// Remove the rows that are false
+	df = df.DropRows(indexes...)
 
 	return df
 }

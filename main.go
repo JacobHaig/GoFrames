@@ -75,8 +75,7 @@ func test() {
 
 }
 
-func main() {
-
+func test2() {
 	df, err := dataframe.ReadCSV("data/addresses.csv", dataframe.Options{
 		"delimiter":        ',',
 		"trimleadingspace": true,
@@ -116,4 +115,39 @@ func main() {
 	})
 	df4.PrintTable()
 
+}
+
+func main() {
+
+	df := dataframe.NewDataFrame()
+
+	newSeries := dataframe.NewSeriesWithType(
+		"First Name",
+		[]interface{}{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"},
+		"string",
+	)
+	df = df.AddSeries(newSeries)
+	df.PrintTable()
+
+	newSeries = dataframe.NewSeriesWithType(
+		"Age",
+		[]interface{}{35, 23, 48, 63, 28, 32},
+		"int",
+	)
+
+	df = df.AddSeries(newSeries)
+
+	df.PrintTable()
+
+	newSeries = dataframe.NewSeries("Last Name",
+		[]interface{}{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"},
+	)
+
+	df = df.AddSeries(newSeries)
+	df.PrintTable()
+
+	newRow := []interface{}{"Jane", 29, "Doe"}
+	df = df.AddRow(newRow)
+
+	df.PrintTable()
 }

@@ -108,7 +108,7 @@ func NewFromRows(rows [][]string, options ...Options) *DataFrame {
 		for _, cell := range row {
 			newRow = append(newRow, cell)
 		}
-		series = append(series, &Series{header[index], newRow})
+		series = append(series, NewSeries(header[index], newRow))
 	}
 
 	return &DataFrame{series}
@@ -182,10 +182,16 @@ func (df *DataFrame) PrintTable() {
 
 	// Calculate the max width of each column
 	widths := make([]int, df.Width())
+	printTypes := false // If there is atleast one type, print the types in the header
 
 	// max header
 	for seriesIndex, series := range df.series {
 		widths[seriesIndex] = max(widths[seriesIndex], len(series.Name))
+
+		if series.Type != nil {
+			widths[seriesIndex] = max(widths[seriesIndex], len(series.Type.Name()))
+			printTypes = true
+		}
 
 		for rowIndex := 0; rowIndex < df.Height(); rowIndex++ {
 			widths[seriesIndex] = max(widths[seriesIndex], len(fmt.Sprint(series.Values[rowIndex])))
@@ -211,6 +217,22 @@ func (df *DataFrame) PrintTable() {
 		}
 	}
 	fmt.Println(" |")
+
+	if printTypes {
+		// Print the type
+		fmt.Print("| ")
+		for index, series := range df.series {
+			if series.Type != nil {
+				fmt.Print(PadRight(series.Type.Name(), " ", widths[index]))
+			} else {
+				fmt.Print(PadRight("", " ", widths[index]))
+			}
+			if index < df.Width()-1 {
+				fmt.Print(" | ")
+			}
+		}
+		fmt.Println(" |")
+	}
 
 	// Print the body separator
 	fmt.Print("+-")
