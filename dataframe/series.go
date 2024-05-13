@@ -68,6 +68,10 @@ func checkGivenType(valueType string) reflect.Type {
 	}
 }
 
+func parseType(value interface{}) reflect.Type {
+	return reflect.TypeOf(value)
+}
+
 // Copy returns a new Series with the same values as the original Series.
 //
 // If deep is set to true, the function will create a deep copy of the Series.
