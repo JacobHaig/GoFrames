@@ -1,11 +1,11 @@
 package dataframe
 
 import (
+	"bufio"
 	"encoding/csv"
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 )
 
 func ReadCSVtoRows(path string, options ...Options) ([][]string, error) {
@@ -13,17 +13,16 @@ func ReadCSVtoRows(path string, options ...Options) ([][]string, error) {
 	optionsClean := standardizeMapKeys(options...)
 
 	// Read the file
-	data, err := os.ReadFile(path)
+	file, err := os.Open(path)
 	if err != nil {
 		fmt.Println("Error reading file:", path)
 		fmt.Println(err)
-		os.Exit(1)
-		return [][]string{}, err
+		return nil, err
 	}
 
 	// Create a CSV Reader
-	stringReader := strings.NewReader(string(data))
-	csvReader := csv.NewReader(stringReader)
+	buf := bufio.NewReader(file)
+	csvReader := csv.NewReader(buf)
 
 	// Get Delimiter
 	if val, ok := optionsClean["delimiter"]; ok {
@@ -57,7 +56,11 @@ func ReadCSVtoRows(path string, options ...Options) ([][]string, error) {
 			fmt.Println("This occurred while parsing the following file:", path)
 		}
 		fmt.Println(err)
-		os.Exit(1)
+		return nil, err
+	}
+
+	if rows == nil {
+		return nil, errors.New("error: rows is nil")
 	}
 
 	return rows, nil
@@ -70,7 +73,7 @@ func ReadCSV(path string, options ...Options) (*DataFrame, error) {
 	// Read the file
 	rows, err := ReadCSVtoRows(path, optionsClean)
 	if err != nil {
-		return &DataFrame{}, err
+		return nil, err
 	}
 
 	// Create the DataFrame
