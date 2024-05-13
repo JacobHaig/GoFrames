@@ -17,7 +17,16 @@ type Series struct {
 //
 // This should be used to create a new Series over the Series struct.
 func NewSeries(name string, values []interface{}) *Series {
-	return &Series{name, values, nil}
+	realType := parseType(values[0])
+
+	for _, value := range values {
+		if parseType(value) != realType {
+			realType = nil
+			break
+		}
+	}
+
+	return &Series{name, values, realType}
 }
 
 func NewSeriesWithType(name string, values []interface{}, valuesType string) *Series {
