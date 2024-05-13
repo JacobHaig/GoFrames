@@ -131,7 +131,7 @@ func (df *DataFrame) WriteCSV(path string, options ...Options) error {
 	header := []string{}
 	if val, ok := optionsClean["header"]; ok {
 		if val.(bool) {
-			header = df.GetColumnNames()
+			header = df.ColumnNames()
 		}
 	}
 
@@ -177,7 +177,15 @@ func (df *DataFrame) WriteCSV(path string, options ...Options) error {
 	return nil
 }
 
-func (df *DataFrame) PrintTable() {
+func (df *DataFrame) PrintTable(options ...Options) {
+	// Standardize the keys
+	optionsClean := standardizeMapKeys(options...)
+
+	rowsToPrint := 10
+	if val, ok := optionsClean["display_rows"]; ok {
+		rowsToPrint = val.(int)
+	}
+
 	if df.Width() == 0 {
 		fmt.Println("Empty DataFrame")
 		return
@@ -248,9 +256,25 @@ func (df *DataFrame) PrintTable() {
 	fmt.Println("-+")
 
 	// Print the DataFrame
+out:
 	for rowIndex := 0; rowIndex < df.Height(); rowIndex++ {
 		fmt.Print("| ")
 		for colIndex, series := range df.series {
+
+			// This is the limit of rows to print. Use the "display_rows" option to change this.
+			if rowIndex >= rowsToPrint {
+				fmt.Print(PadRight("...", " ", widths[colIndex]))
+				if colIndex < df.Width()-1 {
+					fmt.Print(" | ")
+				}
+				// After we fill the columns with ... , we break out of the loop
+				if colIndex == df.Width()-1 {
+					fmt.Println(" |")
+					break out
+				}
+				continue
+			}
+
 			fmt.Print(PadRight(fmt.Sprint(series.Values[rowIndex]), " ", widths[colIndex]))
 			if colIndex < df.Width()-1 {
 				fmt.Print(" | ")

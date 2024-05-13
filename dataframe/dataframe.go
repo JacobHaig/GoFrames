@@ -247,7 +247,7 @@ func (df *DataFrame) Shape() (int, int) {
 	return df.Height(), df.Width()
 }
 
-func (df *DataFrame) GetColumnNames() []string {
+func (df *DataFrame) ColumnNames() []string {
 	columns := []string{}
 	for _, series := range df.series {
 		columns = append(columns, series.Name)
@@ -317,7 +317,7 @@ func (df *DataFrame) ApplyIndex(newColumnName string, f func(...interface{}) int
 
 func (df *DataFrame) ApplyMap(newColumnName string, f func(map[string]interface{}) interface{}) *DataFrame {
 
-	columns := df.GetColumnNames()
+	columns := df.ColumnNames()
 
 	// Get the column indexes
 	columnIndexs := []int{}
@@ -422,7 +422,7 @@ func (df *DataFrame) FilterIndex(f func(...interface{}) bool, cols ...interface{
 
 func (df *DataFrame) FilterMap(f func(map[string]interface{}) bool) *DataFrame {
 
-	columns := df.GetColumnNames()
+	columns := df.ColumnNames()
 
 	// Get the column indexes
 	columnIndexs := []int{}

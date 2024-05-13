@@ -117,7 +117,7 @@ func test2() {
 
 }
 
-func main() {
+func test3() {
 
 	df := dataframe.NewDataFrame()
 
@@ -150,4 +150,24 @@ func main() {
 	df = df.AddRow(newRow)
 
 	df.PrintTable()
+}
+
+func main() {
+	// read csv
+	df, err := dataframe.ReadCSV("data/survey-2021.csv", dataframe.Options{
+		"delimiter":        ',',
+		"trimleadingspace": true,
+		"header":           true,
+	})
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	fmt.Println(df.ColumnNames())
+	fmt.Println(df.Shape())
+
+	df1 := df.Select("Year", "Variable_name", "Value")
+	df1.PrintTable()
+
 }
