@@ -110,14 +110,14 @@ func (df *DataFrame) DropColumn(selectedColumn ...interface{}) *DataFrame {
 	return df
 }
 
-// func (df *DataFrame) ConvertColumn(columnName string, newType string) *DataFrame {
-// 	for _, series := range df.series {
-// 		if series.Name == columnName {
-// 			series.ConvertToType(newType)
-// 		}
-// 	}
-// 	return df
-// }
+func (df *DataFrame) AsType(columnName string, newType string) *DataFrame {
+	for _, series := range df.series {
+		if series.Name == columnName {
+			series.AsType(newType)
+		}
+	}
+	return df
+}
 
 // Select returns a new DataFrame with the selected columns.
 //
@@ -331,6 +331,7 @@ func (df *DataFrame) ApplyIndex(newColumnName string, f func(...interface{}) int
 		newValues = append(newValues, newValue)
 	}
 
+	df = df.DropColumn(newColumnName)
 	// Add the new column to the DataFrame
 	df.series = append(df.series, NewSeries(newColumnName, newValues))
 
@@ -362,6 +363,7 @@ func (df *DataFrame) ApplyMap(newColumnName string, f func(map[string]interface{
 		newValues = append(newValues, newValue)
 	}
 
+	df = df.DropColumn(newColumnName)
 	// Add the new column to the DataFrame
 	df.series = append(df.series, NewSeries(newColumnName, newValues))
 
@@ -397,6 +399,7 @@ func (df *DataFrame) ApplySeries(newColumnName string, f func(...[]interface{}) 
 		newValue = f(values...)
 	}
 
+	df = df.DropColumn(newColumnName)
 	// Add the new column to the DataFrame
 	df.series = append(df.series, NewSeries(newColumnName, newValue))
 

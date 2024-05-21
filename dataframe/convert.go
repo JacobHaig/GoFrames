@@ -55,12 +55,17 @@ func convertToInt(value interface{}) (int, error) {
 	switch v := value.(type) {
 	case int:
 		return v, nil
+	case bool:
+		if v {
+			return 1, nil
+		}
+		return 0, nil
 	case float64:
 		return int(v), nil
 	case string:
 		return convertStringToInt(v)
 	}
-	errorMessage := fmt.Sprintf("error: could not convert %T to int: %v", value, value)
+	errorMessage := fmt.Sprintf("error: could not convert value of type %T to int. The Value is %v", value, value)
 	return 0, errors.New(errorMessage)
 }
 
@@ -87,7 +92,7 @@ func convertToFloat(value interface{}) (float64, error) {
 	case string:
 		return convertStringToFloat(v)
 	}
-	errorMessage := fmt.Sprintf("error: could not convert %T to float: %v", value, value)
+	errorMessage := fmt.Sprintf("error: could not convert value of type %T to float. The Value is %v", value, value)
 	return 0, errors.New(errorMessage)
 }
 

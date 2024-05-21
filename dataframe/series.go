@@ -30,6 +30,12 @@ func NewSeries(name string, values []interface{}) *Series {
 	return &Series{name, values, realType}
 }
 
+func NewSeriesWithType(name string, values []interface{}, valueType string) *Series {
+	series := NewSeries(name, values)
+	series.AsType(valueType)
+	return series
+}
+
 func parseType(value interface{}) reflect.Type {
 	return reflect.TypeOf(value)
 }

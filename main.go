@@ -114,33 +114,7 @@ func test2() {
 		return m["First Name"].(string) != "Jack"
 	})
 	df4.PrintTable()
-
 }
-
-// // read csv
-// df, err := dataframe.ReadCSV("data/survey-2021.csv", dataframe.Options{
-// 	"delimiter":        ',',
-// 	"trimleadingspace": true,
-// 	"header":           true,
-// })
-// if err != nil {
-// 	fmt.Println(err)
-// 	os.Exit(1)
-// }
-
-// fmt.Println(df.ColumnNames())
-// fmt.Println(df.Shape())
-
-// df1 := df.Select("Year", "Variable_name", "Value")
-// df1.PrintTable()
-
-// // df1 = df1.ConvertColumn("Value", "string")
-// // df1 = df1.ConvertColumn("Value", "int")
-
-// df2 := df1.FilterMap(func(m map[string]interface{}) bool {
-// 	return m["Year"].(string) == "2019"
-// })
-// df2.PrintTable()
 
 func main() {
 	// read csv
