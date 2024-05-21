@@ -92,7 +92,7 @@ func test2() {
 
 	df3.PrintTable()
 
-	series := df3.GetSeries("Full Name")
+	series := df3.GetSeriesCopy("Full Name")
 	df3.DropColumn("Full Name")
 	df3.PrintTable()
 
@@ -117,44 +117,34 @@ func test2() {
 
 }
 
-func test3() {
+// // read csv
+// df, err := dataframe.ReadCSV("data/survey-2021.csv", dataframe.Options{
+// 	"delimiter":        ',',
+// 	"trimleadingspace": true,
+// 	"header":           true,
+// })
+// if err != nil {
+// 	fmt.Println(err)
+// 	os.Exit(1)
+// }
 
-	df := dataframe.NewDataFrame()
+// fmt.Println(df.ColumnNames())
+// fmt.Println(df.Shape())
 
-	newSeries := dataframe.NewSeriesWithType(
-		"First Name",
-		[]interface{}{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"},
-		"string",
-	)
-	df = df.AddSeries(newSeries)
-	df.PrintTable()
+// df1 := df.Select("Year", "Variable_name", "Value")
+// df1.PrintTable()
 
-	newSeries = dataframe.NewSeriesWithType(
-		"Age",
-		[]interface{}{35, 23, 48, 63, 28, 32},
-		"int",
-	)
+// // df1 = df1.ConvertColumn("Value", "string")
+// // df1 = df1.ConvertColumn("Value", "int")
 
-	df = df.AddSeries(newSeries)
-
-	df.PrintTable()
-
-	newSeries = dataframe.NewSeries("Last Name",
-		[]interface{}{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"},
-	)
-
-	df = df.AddSeries(newSeries)
-	df.PrintTable()
-
-	newRow := []interface{}{"Jane", 29, "Doe"}
-	df = df.AddRow(newRow)
-
-	df.PrintTable()
-}
+// df2 := df1.FilterMap(func(m map[string]interface{}) bool {
+// 	return m["Year"].(string) == "2019"
+// })
+// df2.PrintTable()
 
 func main() {
 	// read csv
-	df, err := dataframe.ReadCSV("data/survey-2021.csv", dataframe.Options{
+	df, err := dataframe.ReadCSV("data/addresses.csv", dataframe.Options{
 		"delimiter":        ',',
 		"trimleadingspace": true,
 		"header":           true,
@@ -167,7 +157,22 @@ func main() {
 	fmt.Println(df.ColumnNames())
 	fmt.Println(df.Shape())
 
-	df1 := df.Select("Year", "Variable_name", "Value")
-	df1.PrintTable()
+	df.DropColumn("First Name", "Last Name", "Address", "City", "State", "Zip")
+	df.PrintTable()
 
+	df.GetSeries("Age").AsType("float")
+
+	df2 := df.ApplyMap("Age Plus 2", func(m map[string]interface{}) interface{} {
+		return m["Age"].(float64) * 2.56
+	})
+	df2.PrintTable()
+
+	df2.GetSeries("Age Plus 2").AsType("string")
+	df2.PrintTable()
+
+	df3 := df2.ApplyMap("Age Plus 2 and a string", func(m map[string]interface{}) interface{} {
+		return m["Age Plus 2"].(string) + " = idk"
+	})
+	df3.GetSeries("Age Plus 2 and a string").AsType("string")
+	df3.PrintTable()
 }

@@ -14,6 +14,47 @@ func NewDataFrame(series ...*Series) *DataFrame {
 	return &DataFrame{series}
 }
 
+func (df *DataFrame) allColumnsExist(columnNames []string) bool {
+	for _, columnName := range columnNames {
+		if _, ok := df.GetColumnIndex(columnName); !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func (df *DataFrame) findColumnsThatDontExist(columnNames []string) []string {
+	columns := []string{}
+	for _, columnName := range columnNames {
+		if _, ok := df.GetColumnIndex(columnName); !ok {
+			columns = append(columns, columnName)
+		}
+	}
+	return columns
+}
+
+func (df *DataFrame) Width() int {
+	return len(df.series)
+}
+
+func (df *DataFrame) Height() int {
+	if len(df.series) == 0 {
+		return 0
+	}
+	return len(df.series[0].Values)
+}
+
+// Shape returns the height and width of the DataFrame.
+//
+// The height is the number of rows in the DataFrame.
+// The width is the number of columns in the DataFrame.
+func (df *DataFrame) Shape() (int, int) {
+	if len(df.series) == 0 {
+		return 0, 0
+	}
+	return df.Height(), df.Width()
+}
+
 func (df *DataFrame) DropRow(index int) *DataFrame {
 	for _, series := range df.series {
 		series.DropRow(index)
@@ -44,69 +85,6 @@ func (df *DataFrame) DropRowsBySeries(series *Series) *DataFrame {
 	return df
 }
 
-func (df *DataFrame) allColumnsExist(columnNames []string) bool {
-	for _, columnName := range columnNames {
-		if _, ok := df.GetColumnIndex(columnName); !ok {
-			return false
-		}
-	}
-	return true
-}
-
-func (df *DataFrame) findColumnsThatDontExist(columnNames []string) []string {
-	columns := []string{}
-	for _, columnName := range columnNames {
-		if _, ok := df.GetColumnIndex(columnName); !ok {
-			columns = append(columns, columnName)
-		}
-	}
-	return columns
-}
-
-// GetColumn returns the column names based on the selected columns.
-//
-// The selectedColumns can be a string, slice of strings, int, or slice of ints.
-// If the selectedColumns are strings, the function will return the column names
-// as strings. If the selectedColumns are ints, the function will also return the
-// column names.
-//
-// The function returns an error if one of the columns does not exist.
-func (df *DataFrame) GetColumn(selectedColumns ...interface{}) ([]string, error) {
-
-	if len(selectedColumns) == 0 {
-		return []string{}, nil
-	}
-
-	switch selectedColumns[0].(type) {
-	case []string, string:
-		columnNames := InterfaceToTypeSlice[string](selectedColumns)
-
-		// Check if all columns exist
-		allExist := df.allColumnsExist(columnNames)
-
-		if allExist {
-			return columnNames, nil
-		} else {
-			columns := df.findColumnsThatDontExist(columnNames)
-			return nil, errors.New("One of these columns do not exist: " + SprintfStringSlice(columns))
-		}
-
-	case []int, int:
-		columnIndexes := InterfaceToTypeSlice[int](selectedColumns)
-
-		columnNames := []string{}
-		for _, index := range columnIndexes {
-			if index < 0 || index >= len(df.series) {
-				return nil, errors.New("Index out of range: " + fmt.Sprint(index))
-			}
-			columnNames = append(columnNames, df.series[index].Name)
-		}
-		return columnNames, nil
-	}
-
-	return []string{}, nil
-}
-
 func (df *DataFrame) DropColumn(selectedColumn ...interface{}) *DataFrame {
 
 	if len(df.series) == 0 {
@@ -131,6 +109,15 @@ func (df *DataFrame) DropColumn(selectedColumn ...interface{}) *DataFrame {
 
 	return df
 }
+
+// func (df *DataFrame) ConvertColumn(columnName string, newType string) *DataFrame {
+// 	for _, series := range df.series {
+// 		if series.Name == columnName {
+// 			series.ConvertToType(newType)
+// 		}
+// 	}
+// 	return df
+// }
 
 // Select returns a new DataFrame with the selected columns.
 //
@@ -177,15 +164,72 @@ func (df *DataFrame) Select(selectedColumn ...interface{}) *DataFrame {
 	return &DataFrame{newSeries}
 }
 
-// GetSeries returns a slice of Series based on the column name.
+// GetColumn returns the column names based on the selected columns.
+//
+// The selectedColumns can be a string, slice of strings, int, or slice of ints.
+// If the selectedColumns are strings, the function will return the column names
+// as strings. If the selectedColumns are ints, the function will also return the
+// column names.
+//
+// The function returns an error if one of the columns does not exist.
+func (df *DataFrame) GetColumn(selectedColumns ...interface{}) ([]string, error) {
+
+	if len(selectedColumns) == 0 {
+		return []string{}, nil
+	}
+
+	switch selectedColumns[0].(type) {
+	case []string, string:
+		columnNames := InterfaceToTypeSlice[string](selectedColumns)
+
+		// Check if all columns exist
+		allExist := df.allColumnsExist(columnNames)
+
+		if allExist {
+			return columnNames, nil
+		} else {
+			columns := df.findColumnsThatDontExist(columnNames)
+			return nil, errors.New("One of these columns do not exist: " + SprintfStringSlice(columns))
+		}
+
+	case []int, int:
+		columnIndexes := InterfaceToTypeSlice[int](selectedColumns)
+
+		columnNames := []string{}
+		for _, index := range columnIndexes {
+			if index < 0 || index >= len(df.series) {
+				return nil, errors.New("Index out of range: " + fmt.Sprint(index))
+			}
+			columnNames = append(columnNames, df.series[index].Name)
+		}
+		return columnNames, nil
+	}
+
+	return []string{}, nil
+}
+
+// GetSeriesCopy returns a slice of Series based on the column name.
 //
 // The function returns a completely new slice of Series. This means that
 // the original DataFrame is not affected by the function.
+func (df *DataFrame) GetSeriesCopy(columnName string) *Series {
+	series := &Series{}
+	for _, s := range df.series {
+		if s.Name == columnName {
+			return s.Copy(true)
+		}
+	}
+	return series
+}
+
+// GetSeriesCopy returns a slice of Series based on the column name.
+//
+// The function returns a referance to the original Series.
 func (df *DataFrame) GetSeries(columnName string) *Series {
 	series := &Series{}
 	for _, s := range df.series {
 		if s.Name == columnName {
-			series = s.Copy(true)
+			return s
 		}
 	}
 	return series
@@ -223,28 +267,6 @@ func (df *DataFrame) AddRow(row []interface{}) *DataFrame {
 	}
 
 	return df
-}
-
-func (df *DataFrame) Width() int {
-	return len(df.series)
-}
-
-func (df *DataFrame) Height() int {
-	if len(df.series) == 0 {
-		return 0
-	}
-	return len(df.series[0].Values)
-}
-
-// Shape returns the height and width of the DataFrame.
-//
-// The height is the number of rows in the DataFrame.
-// The width is the number of columns in the DataFrame.
-func (df *DataFrame) Shape() (int, int) {
-	if len(df.series) == 0 {
-		return 0, 0
-	}
-	return df.Height(), df.Width()
 }
 
 func (df *DataFrame) ColumnNames() []string {

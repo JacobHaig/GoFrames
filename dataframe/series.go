@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"strconv"
 	"time"
 )
 
@@ -29,11 +30,8 @@ func NewSeries(name string, values []interface{}) *Series {
 	return &Series{name, values, realType}
 }
 
-func NewSeriesWithType(name string, values []interface{}, valuesType string) *Series {
-	realType := checkGivenType(valuesType)
-	fmt.Println("Real type: ", realType)
-
-	return &Series{name, values, realType}
+func parseType(value interface{}) reflect.Type {
+	return reflect.TypeOf(value)
 }
 
 func (s *Series) Rename(newName string) *Series {
@@ -41,44 +39,89 @@ func (s *Series) Rename(newName string) *Series {
 	return s
 }
 
-func checkGivenType(valueType string) reflect.Type {
-	switch valueType {
+func (s *Series) AsType(valueType string) *Series {
+	// Todo: Decide if we should panic or return an error if
+	// the conversion fails. Currently, we are just printing the error
+	// and returning nil which is not a good practice.
+
+	// Convert the values to the new type.
+	for i := range s.Values {
+		value, err := convertValue(s.Values[i], valueType)
+		// fmt.Printf("Underlying Type: %T\n", value)
+
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+
+		s.Values[i] = value
+	}
+
+	// Set the new type.
+	s.Type = parseType(s.Values[0])
+
+	return s
+}
+
+func convertToType(value interface{}, newType string) interface{} {
+	switch newType {
 	case "int":
-		return reflect.TypeOf(0)
+		i, err := strconv.Atoi(value.(string))
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+		return i
 	case "int8":
-		return reflect.TypeOf(int8(0))
+		return int8(value.(int8))
 	case "int16":
-		return reflect.TypeOf(int16(0))
+		return int16(value.(int16))
 	case "int32":
-		return reflect.TypeOf(int32(0))
+		return int32(value.(int32))
 	case "int64":
-		return reflect.TypeOf(int64(0))
+		return int64(value.(int64))
 	case "float":
-		return reflect.TypeOf(0.0)
+		return float64(value.(float64))
 	case "float32":
-		return reflect.TypeOf(float32(0.0))
+		return float32(value.(float32))
 	case "float64":
-		return reflect.TypeOf(float64(0.0))
+		return float64(value.(float64))
 	case "string":
-		return reflect.TypeOf("")
+		return string(value.(string))
 	case "rune":
-		return reflect.TypeOf(' ')
+		return rune(value.(rune))
 	case "byte":
-		return reflect.TypeOf(byte(0))
+		return byte(value.(byte))
 	case "bool":
-		return reflect.TypeOf(false)
+		return bool(value.(bool))
 	case "time":
-		return reflect.TypeOf(time.Time{})
+		return time.Time(value.(time.Time))
 	case "datetime":
-		return reflect.TypeOf(time.Time{})
+		return time.Time(value.(time.Time))
 	default:
-		fmt.Println("Unknown type: ", valueType)
-		return reflect.TypeOf(0)
+		fmt.Println("Unknown type: ", newType)
+		return nil
 	}
 }
 
-func parseType(value interface{}) reflect.Type {
-	return reflect.TypeOf(value)
+// InferType detects the type used in the Series.
+//
+// Returns the string label of the series type and sets it to the Series.Type field.
+func (s *Series) InferType() reflect.Type {
+	s.Type = parseType(s.Values[0])
+
+	for _, value := range s.Values {
+		if parseType(value) != s.Type {
+			s.Type = nil
+			break
+		}
+	}
+
+	return s.Type
+}
+
+func (s *Series) Get(index int) interface{} {
+	return s.Values[index]
 }
 
 // Copy returns a new Series with the same values as the original Series.
