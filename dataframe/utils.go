@@ -9,7 +9,7 @@ import (
 
 type Options map[string]interface{}
 
-func standardizeMapKeys(options ...Options) Options {
+func standardizeOptions(options ...Options) Options {
 	if len(options) == 0 {
 		return Options{}
 	}
@@ -19,6 +19,13 @@ func standardizeMapKeys(options ...Options) Options {
 		options[0][strings.ToLower(k)] = v
 	}
 	return options[0]
+}
+
+func (options Options) getOption(key string, defaultValue interface{}) interface{} {
+	if val, ok := options[key]; ok {
+		return val
+	}
+	return defaultValue
 }
 
 func allSameType(values []interface{}) bool {
@@ -37,9 +44,9 @@ func allSameType(values []interface{}) bool {
 	return true
 }
 
+// FlattenInterface flattens a slice of slices of interfaces into a single slice of T
+// This can flatten [][]interface{} into []T or []interface{} into []T
 func flattenInterface[T interface{}](acc []T, arr interface{}) ([]T, error) {
-	// s := fmt.Sprintf("%T", arr)
-	// fmt.Println(s)
 
 	var err error
 	switch v := arr.(type) {
@@ -84,6 +91,7 @@ func InterfaceToTypeSlice[T interface{}](values ...interface{}) []T {
 	return result
 }
 
+// PadRight pads a string on the right with a pad string until it reaches a certain length
 func PadRight(str, pad string, length int) string {
 	for {
 		str += pad
@@ -92,6 +100,8 @@ func PadRight(str, pad string, length int) string {
 		}
 	}
 }
+
+// PadLeft pads a string on the left with a pad string until it reaches a certain length
 func PadLeft(str, pad string, length int) string {
 	for {
 		str = pad + str

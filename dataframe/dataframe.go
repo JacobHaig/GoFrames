@@ -44,6 +44,15 @@ func (df *DataFrame) Height() int {
 	return len(df.series[0].Values)
 }
 
+func (df *DataFrame) HasColumn(columnName string) bool {
+	for _, series := range df.series {
+		if series.Name == columnName {
+			return true
+		}
+	}
+	return false
+}
+
 // Shape returns the height and width of the DataFrame.
 //
 // The height is the number of rows in the DataFrame.
@@ -92,7 +101,7 @@ func (df *DataFrame) DropColumn(selectedColumn ...interface{}) *DataFrame {
 	}
 
 	// Check if all values are of the same type
-	columns, err := df.GetColumn(selectedColumn...)
+	columns, err := df.GetColumnNames(selectedColumn...)
 	if err != nil {
 		fmt.Println(err)
 		return &DataFrame{}
@@ -125,12 +134,6 @@ func (df *DataFrame) AsType(columnName string, newType string) *DataFrame {
 // with the referances to the original data.
 // The columnNames can be a string, slice of strings, int, or slice of ints.
 func (df *DataFrame) Select(selectedColumn ...interface{}) *DataFrame {
-
-	// Variadic functions arguments are passed as a slice.
-	// If a type T is passed in, we access it as a slice of T.
-	// If a slice of T is passed in, we access it by taking
-	// the first element, which is a slice of T.
-
 	if len(df.series) == 0 {
 		return &DataFrame{}
 	}
@@ -141,13 +144,7 @@ func (df *DataFrame) Select(selectedColumn ...interface{}) *DataFrame {
 		return &DataFrame{}
 	}
 
-	// Check the type of the first value. We have to know the
-	// inner type of the slice to be able to work with it.
-	// If the inner type is a slice, we need to change it to
-	// the correct type. If the inner type is a string, we
-	// If the inner type is an interface{}, we fail.
-
-	columnNames, err := df.GetColumn(selectedColumn...)
+	columnNames, err := df.GetColumnNames(selectedColumn...)
 	if err != nil {
 		fmt.Println(err)
 		return &DataFrame{}
@@ -164,15 +161,13 @@ func (df *DataFrame) Select(selectedColumn ...interface{}) *DataFrame {
 	return &DataFrame{newSeries}
 }
 
-// GetColumn returns the column names based on the selected columns.
+// GetColumnNames returns the column names based on the selected columns.
 //
 // The selectedColumns can be a string, slice of strings, int, or slice of ints.
-// If the selectedColumns are strings, the function will return the column names
-// as strings. If the selectedColumns are ints, the function will also return the
-// column names.
 //
-// The function returns an error if one of the columns does not exist.
-func (df *DataFrame) GetColumn(selectedColumns ...interface{}) ([]string, error) {
+// Returns a slice of strings with the column names.
+// Error is returned if one of the columns do not exist.
+func (df *DataFrame) GetColumnNames(selectedColumns ...interface{}) ([]string, error) {
 
 	if len(selectedColumns) == 0 {
 		return []string{}, nil
@@ -208,30 +203,24 @@ func (df *DataFrame) GetColumn(selectedColumns ...interface{}) ([]string, error)
 	return []string{}, nil
 }
 
-// GetSeriesCopy returns a slice of Series based on the column name.
+// GetSeries returns a slice of Series based on the column name.
 //
 // The function returns a completely new slice of Series. This means that
 // the original DataFrame is not affected by the function.
-func (df *DataFrame) GetSeriesCopy(columnName string) *Series {
-	series := &Series{}
-	for _, s := range df.series {
-		if s.Name == columnName {
-			return s.Copy(true)
-		}
-	}
-	return series
-}
-
-// GetSeriesCopy returns a slice of Series based on the column name.
 //
-// The function returns a referance to the original Series.
-func (df *DataFrame) GetSeries(columnName string) *Series {
+// Options:
+//   - copy: bool (default: false) If true, the function will return a copy of the Series.
+func (df *DataFrame) GetSeries(columnName string, options ...Options) *Series {
+	optionsClean := standardizeOptions(options...)
+	copy := optionsClean.getOption("copy", false).(bool)
+
 	series := &Series{}
 	for _, s := range df.series {
 		if s.Name == columnName {
-			return s
+			return s.Copy(copy)
 		}
 	}
+
 	return series
 }
 
@@ -297,14 +286,8 @@ func (df *DataFrame) Rename(oldColumnName, newColumnName string) *DataFrame {
 
 func (df *DataFrame) ApplyIndex(newColumnName string, f func(...interface{}) interface{}, cols ...interface{}) *DataFrame {
 
-	// // Check if all values are of the same type
-	// if !allSameType(cols) {
-	// 	fmt.Println("All values must be of the same type")
-	// 	return &DataFrame{}
-	// }
-
 	// Get the column names
-	columns, err := df.GetColumn(cols...)
+	columns, err := df.GetColumnNames(cols...)
 	if err != nil {
 		fmt.Println(err)
 		return &DataFrame{}
@@ -331,7 +314,9 @@ func (df *DataFrame) ApplyIndex(newColumnName string, f func(...interface{}) int
 		newValues = append(newValues, newValue)
 	}
 
-	df = df.DropColumn(newColumnName)
+	if df.HasColumn(newColumnName) {
+		df = df.DropColumn(newColumnName)
+	}
 	// Add the new column to the DataFrame
 	df.series = append(df.series, NewSeries(newColumnName, newValues))
 
@@ -363,7 +348,9 @@ func (df *DataFrame) ApplyMap(newColumnName string, f func(map[string]interface{
 		newValues = append(newValues, newValue)
 	}
 
-	df = df.DropColumn(newColumnName)
+	if df.HasColumn(newColumnName) {
+		df = df.DropColumn(newColumnName)
+	}
 	// Add the new column to the DataFrame
 	df.series = append(df.series, NewSeries(newColumnName, newValues))
 
@@ -373,7 +360,7 @@ func (df *DataFrame) ApplyMap(newColumnName string, f func(map[string]interface{
 func (df *DataFrame) ApplySeries(newColumnName string, f func(...[]interface{}) []interface{}, cols ...interface{}) *DataFrame {
 
 	// Get the column names
-	columns, err := df.GetColumn(cols...)
+	columns, err := df.GetColumnNames(cols...)
 	if err != nil {
 		fmt.Println(err)
 		return &DataFrame{}
@@ -399,7 +386,9 @@ func (df *DataFrame) ApplySeries(newColumnName string, f func(...[]interface{}) 
 		newValue = f(values...)
 	}
 
-	df = df.DropColumn(newColumnName)
+	if df.HasColumn(newColumnName) {
+		df = df.DropColumn(newColumnName)
+	}
 	// Add the new column to the DataFrame
 	df.series = append(df.series, NewSeries(newColumnName, newValue))
 
@@ -408,7 +397,7 @@ func (df *DataFrame) ApplySeries(newColumnName string, f func(...[]interface{}) 
 
 func (df *DataFrame) FilterIndex(f func(...interface{}) bool, cols ...interface{}) *DataFrame {
 	// Get the column names
-	columns, err := df.GetColumn(cols...)
+	columns, err := df.GetColumnNames(cols...)
 	if err != nil {
 		fmt.Println(err)
 		return &DataFrame{}
@@ -487,7 +476,7 @@ func (df *DataFrame) FilterMap(f func(map[string]interface{}) bool) *DataFrame {
 func (df *DataFrame) FilterSeries(f func(...[]interface{}) bool, cols ...interface{}) *DataFrame {
 
 	// Get the column names
-	columns, err := df.GetColumn(cols...)
+	columns, err := df.GetColumnNames(cols...)
 	if err != nil {
 		fmt.Println(err)
 		return &DataFrame{}

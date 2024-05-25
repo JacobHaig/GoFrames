@@ -10,7 +10,10 @@ import (
 
 func ReadCSVtoRows(path string, options ...Options) ([][]string, error) {
 	// Standardize the keys
-	optionsClean := standardizeMapKeys(options...)
+	optionsClean := standardizeOptions(options...)
+	delimiter := optionsClean.getOption("delimiter", ',').(rune)
+	trimLeadingSpace := optionsClean.getOption("trimleadingspace", false).(bool)
+	debug := optionsClean.getOption("debug", false).(bool)
 
 	// Read the file
 	file, err := os.Open(path)
@@ -24,27 +27,17 @@ func ReadCSVtoRows(path string, options ...Options) ([][]string, error) {
 	buf := bufio.NewReader(file)
 	csvReader := csv.NewReader(buf)
 
-	// Get Delimiter
-	if val, ok := optionsClean["delimiter"]; ok {
-		csvReader.Comma = val.(rune)
-	} else {
-		csvReader.Comma = ','
-	}
-
-	if val, ok := optionsClean["trimleadingspace"]; ok {
-		csvReader.TrimLeadingSpace = val.(bool) // Can cause issues if the delimiter is a space or tab
-	}
+	csvReader.Comma = delimiter
+	csvReader.TrimLeadingSpace = trimLeadingSpace
 
 	// Prevent incompatible options
 	if csvReader.TrimLeadingSpace && (csvReader.Comma == ' ' || csvReader.Comma == '\t') {
 		return nil, errors.New("error: trimleadingspace is true, but the delimiter is a space or tab. these are incompatible options")
 	}
 
-	if val, ok := optionsClean["debug"]; ok {
-		if val.(bool) {
-			fmt.Println("Delimiter:", "("+string(csvReader.Comma)+")")
-			fmt.Println("TrimLeadingSpace:", csvReader.TrimLeadingSpace)
-		}
+	if debug {
+		fmt.Println("Delimiter:", "("+string(csvReader.Comma)+")")
+		fmt.Println("TrimLeadingSpace:", csvReader.TrimLeadingSpace)
 	}
 
 	// Read the CSV
@@ -67,8 +60,7 @@ func ReadCSVtoRows(path string, options ...Options) ([][]string, error) {
 }
 
 func ReadCSV(path string, options ...Options) (*DataFrame, error) {
-	// Standardize the keys
-	optionsClean := standardizeMapKeys(options...)
+	optionsClean := standardizeOptions(options...)
 
 	// Read the file
 	rows, err := ReadCSVtoRows(path, optionsClean)
@@ -83,8 +75,8 @@ func ReadCSV(path string, options ...Options) (*DataFrame, error) {
 }
 
 func NewFromRows(rows [][]string, options ...Options) *DataFrame {
-	// Standardize the keys
-	optionsClean := standardizeMapKeys(options...)
+	optionsClean := standardizeOptions(options...)
+	headerOption := optionsClean.getOption("header", false).(bool)
 
 	// Prefill header with default values
 	header := []string{}
@@ -93,11 +85,9 @@ func NewFromRows(rows [][]string, options ...Options) *DataFrame {
 	}
 
 	// Check if header is present
-	if val, ok := optionsClean["header"]; ok {
-		if val.(bool) {
-			header = rows[0]
-			rows = rows[1:]
-		}
+	if headerOption {
+		header = rows[0]
+		rows = rows[1:]
 	}
 
 	// Transpose the rows
@@ -121,18 +111,14 @@ func NewFromRows(rows [][]string, options ...Options) *DataFrame {
 //
 // The options can be used to control the output.
 // The options are:
-//   - header: bool (default: false)
-//     Whether to include the header in the output.
+//   - header: bool (default: false) Whether to include the header in the output.
 func (df *DataFrame) WriteCSV(path string, options ...Options) error {
-
-	// Standardize the keys
-	optionsClean := standardizeMapKeys(options...)
+	optionsClean := standardizeOptions(options...)
+	headerOption := optionsClean.getOption("header", false).(bool)
 
 	header := []string{}
-	if val, ok := optionsClean["header"]; ok {
-		if val.(bool) {
-			header = df.ColumnNames()
-		}
+	if headerOption {
+		header = df.ColumnNames()
 	}
 
 	columns := [][]string{} // Todo: Change to [][]interface{}
@@ -178,13 +164,8 @@ func (df *DataFrame) WriteCSV(path string, options ...Options) error {
 }
 
 func (df *DataFrame) PrintTable(options ...Options) {
-	// Standardize the keys
-	optionsClean := standardizeMapKeys(options...)
-
-	rowsToPrint := 10
-	if val, ok := optionsClean["display_rows"]; ok {
-		rowsToPrint = val.(int)
-	}
+	optionsClean := standardizeOptions(options...)
+	displayRows := optionsClean.getOption("display_rows", 10).(int)
 
 	if df.Width() == 0 {
 		fmt.Println("Empty DataFrame")
@@ -262,7 +243,7 @@ out:
 		for colIndex, series := range df.series {
 
 			// This is the limit of rows to print. Use the "display_rows" option to change this.
-			if rowIndex >= rowsToPrint {
+			if rowIndex >= displayRows {
 				fmt.Print(PadRight("...", " ", widths[colIndex]))
 				if colIndex < df.Width()-1 {
 					fmt.Print(" | ")
