@@ -6,6 +6,8 @@ import (
 	"slices"
 )
 
+type Any = interface{}
+
 type DataFrame struct {
 	series []*Series
 }
@@ -94,7 +96,7 @@ func (df *DataFrame) DropRowsBySeries(series *Series) *DataFrame {
 	return df
 }
 
-func (df *DataFrame) DropColumn(selectedColumn ...interface{}) *DataFrame {
+func (df *DataFrame) DropColumn(selectedColumn ...Any) *DataFrame {
 
 	if len(df.series) == 0 {
 		return &DataFrame{}
@@ -133,7 +135,7 @@ func (df *DataFrame) AsType(columnName string, newType string) *DataFrame {
 // Select does not create a copy of the data, it only creates a new DataFrame
 // with the referances to the original data.
 // The columnNames can be a string, slice of strings, int, or slice of ints.
-func (df *DataFrame) Select(selectedColumn ...interface{}) *DataFrame {
+func (df *DataFrame) Select(selectedColumn ...Any) *DataFrame {
 	if len(df.series) == 0 {
 		return &DataFrame{}
 	}
@@ -167,7 +169,7 @@ func (df *DataFrame) Select(selectedColumn ...interface{}) *DataFrame {
 //
 // Returns a slice of strings with the column names.
 // Error is returned if one of the columns do not exist.
-func (df *DataFrame) GetColumnNames(selectedColumns ...interface{}) ([]string, error) {
+func (df *DataFrame) GetColumnNames(selectedColumns ...Any) ([]string, error) {
 
 	if len(selectedColumns) == 0 {
 		return []string{}, nil
@@ -241,7 +243,7 @@ func (df *DataFrame) AddSeries(series *Series) *DataFrame {
 	return df
 }
 
-func (df *DataFrame) AddRow(row []interface{}) *DataFrame {
+func (df *DataFrame) AddRow(row []Any) *DataFrame {
 	if df.Width() == 0 {
 		return df
 	}
@@ -284,7 +286,7 @@ func (df *DataFrame) Rename(oldColumnName, newColumnName string) *DataFrame {
 	return df
 }
 
-func (df *DataFrame) ApplyIndex(newColumnName string, f func(...interface{}) interface{}, cols ...interface{}) *DataFrame {
+func (df *DataFrame) ApplyIndex(newColumnName string, f func(...Any) Any, cols ...Any) *DataFrame {
 
 	// Get the column names
 	columns, err := df.GetColumnNames(cols...)
@@ -301,11 +303,11 @@ func (df *DataFrame) ApplyIndex(newColumnName string, f func(...interface{}) int
 	}
 
 	// Create the new column
-	newValues := []interface{}{}
+	newValues := []Any{}
 	for i := 0; i < df.Height(); i++ {
 
 		// List of Values to be used
-		values := []interface{}{}
+		values := []Any{}
 		for _, columnIndex := range columnIndexs {
 			values = append(values, df.series[columnIndex].Values[i])
 		}
@@ -323,7 +325,7 @@ func (df *DataFrame) ApplyIndex(newColumnName string, f func(...interface{}) int
 	return df
 }
 
-func (df *DataFrame) ApplyMap(newColumnName string, f func(map[string]interface{}) interface{}) *DataFrame {
+func (df *DataFrame) ApplyMap(newColumnName string, f func(map[string]Any) Any) *DataFrame {
 
 	columns := df.ColumnNames()
 
@@ -335,11 +337,11 @@ func (df *DataFrame) ApplyMap(newColumnName string, f func(map[string]interface{
 	}
 
 	// Create the new column
-	newValues := []interface{}{}
+	newValues := []Any{}
 	for i := 0; i < df.Height(); i++ {
 
 		// List of Values to be used
-		valuemap := map[string]interface{}{}
+		valuemap := map[string]Any{}
 		for _, columnIndex := range columnIndexs {
 			valuemap[df.series[columnIndex].Name] = df.series[columnIndex].Values[i]
 		}
@@ -357,7 +359,7 @@ func (df *DataFrame) ApplyMap(newColumnName string, f func(map[string]interface{
 	return df
 }
 
-func (df *DataFrame) ApplySeries(newColumnName string, f func(...[]interface{}) []interface{}, cols ...interface{}) *DataFrame {
+func (df *DataFrame) ApplySeries(newColumnName string, f func(...[]Any) []Any, cols ...Any) *DataFrame {
 
 	// Get the column names
 	columns, err := df.GetColumnNames(cols...)
@@ -374,11 +376,11 @@ func (df *DataFrame) ApplySeries(newColumnName string, f func(...[]interface{}) 
 	}
 
 	// Create the new column
-	newValue := []interface{}{}
+	newValue := []Any{}
 	for i := 0; i < df.Height(); i++ {
 
 		// List of Values to be used
-		values := [][]interface{}{}
+		values := [][]Any{}
 		for _, columnIndex := range columnIndexs {
 			values = append(values, df.series[columnIndex].Values)
 		}
@@ -395,7 +397,7 @@ func (df *DataFrame) ApplySeries(newColumnName string, f func(...[]interface{}) 
 	return df
 }
 
-func (df *DataFrame) FilterIndex(f func(...interface{}) bool, cols ...interface{}) *DataFrame {
+func (df *DataFrame) FilterIndex(f func(...Any) bool, cols ...Any) *DataFrame {
 	// Get the column names
 	columns, err := df.GetColumnNames(cols...)
 	if err != nil {
@@ -411,11 +413,11 @@ func (df *DataFrame) FilterIndex(f func(...interface{}) bool, cols ...interface{
 	}
 
 	// Create the new column
-	newValues := []interface{}{}
+	newValues := []Any{}
 	for i := 0; i < df.Height(); i++ {
 
 		// List of Values to be used
-		values := []interface{}{}
+		values := []Any{}
 		for _, columnIndex := range columnIndexs {
 			values = append(values, df.series[columnIndex].Values[i])
 		}
@@ -434,7 +436,7 @@ func (df *DataFrame) FilterIndex(f func(...interface{}) bool, cols ...interface{
 	return df
 }
 
-func (df *DataFrame) FilterMap(f func(map[string]interface{}) bool) *DataFrame {
+func (df *DataFrame) FilterMap(f func(map[string]Any) bool) *DataFrame {
 
 	columns := df.ColumnNames()
 
@@ -446,11 +448,11 @@ func (df *DataFrame) FilterMap(f func(map[string]interface{}) bool) *DataFrame {
 	}
 
 	// Create the new column
-	newValues := []interface{}{}
+	newValues := []Any{}
 	for i := 0; i < df.Height(); i++ {
 
 		// List of Values to be used
-		valuemap := map[string]interface{}{}
+		valuemap := map[string]Any{}
 		for _, columnIndex := range columnIndexs {
 			valuemap[df.series[columnIndex].Name] = df.series[columnIndex].Values[i]
 		}
@@ -473,7 +475,7 @@ func (df *DataFrame) FilterMap(f func(map[string]interface{}) bool) *DataFrame {
 	return df
 }
 
-func (df *DataFrame) FilterSeries(f func(...[]interface{}) bool, cols ...interface{}) *DataFrame {
+func (df *DataFrame) FilterSeries(f func(...[]Any) bool, cols ...Any) *DataFrame {
 
 	// Get the column names
 	columns, err := df.GetColumnNames(cols...)
@@ -490,11 +492,11 @@ func (df *DataFrame) FilterSeries(f func(...[]interface{}) bool, cols ...interfa
 	}
 
 	// Create the new column
-	newValues := []interface{}{}
+	newValues := []Any{}
 	for i := 0; i < df.Height(); i++ {
 
 		// List of Values to be used
-		values := [][]interface{}{}
+		values := [][]Any{}
 		for _, columnIndex := range columnIndexs {
 			values = append(values, df.series[columnIndex].Values)
 		}
@@ -515,4 +517,76 @@ func (df *DataFrame) FilterSeries(f func(...[]interface{}) bool, cols ...interfa
 	df = df.DropRows(indexes...)
 
 	return df
+}
+
+// df.groupby("City")[["Age", "AgeSquared"]].sum()
+func (df *DataFrame) GroupByIndex(by string, f func(...Any) Any, cols ...Any) *DataFrame {
+
+	// Get the column names
+	columns, err := df.GetColumnNames(cols...)
+	if err != nil {
+		fmt.Println(err)
+		return &DataFrame{}
+	}
+
+	// Get the column indexes
+	columnIndexs := []int{}
+	for _, columnName := range columns {
+		columnIndex, _ := df.GetColumnIndex(columnName)
+		columnIndexs = append(columnIndexs, columnIndex)
+	}
+
+	byColumnIndex, exists := df.GetColumnIndex(by)
+	if !exists {
+		panic("Column does not exist: " + by)
+	}
+	bySeries := df.series[byColumnIndex]
+
+	// Hashmap
+	// String -> List of Lists
+	// "Tyler" -> [[1, 2], [3, 4]]
+
+	// Create a Hashmap of lists of lists
+	hashmap := map[Any][][]Any{}
+	for i := 0; i < df.Height(); i++ {
+		// Add the values to the hashmap
+		key := bySeries.Values[i]
+		if _, ok := hashmap[key]; !ok {
+			hashmap[key] = make([][]Any, len(columnIndexs))
+		}
+
+		for index, seriesIndex := range columnIndexs {
+			series := df.series[seriesIndex]
+			hashmap[key][index] = append(hashmap[key][index], series.Values[i])
+		}
+	}
+
+	// Print the hashmap
+	for key, values := range hashmap {
+		fmt.Println(key, values)
+	}
+
+	// Create the new column
+	df = NewDataFrame()
+	df.AddSeries(NewSeries(by, []Any{}))
+
+	for _, columnName := range columns {
+		df.AddSeries(NewSeries(columnName, []Any{}))
+	}
+
+	for key, rows := range hashmap {
+
+		newValues := []Any{key}
+		for _, values := range rows {
+			newValue := f(values...)
+			newValues = append(newValues, newValue)
+		}
+
+		df.AddRow(newValues)
+
+		fmt.Println(newValues)
+	}
+
+	return df
+
 }
