@@ -79,13 +79,13 @@ func main() {
 	// df3.GetSeries("Age2").AsType("string")
 	// df3.PrintTable()
 	df.AsType("Age", "int")
-	df = df.ApplyMap("AgeSquared", func(m map[string]dataframe.Any) dataframe.Any {
+	df = df.ApplyMap("AgeSquared", func(m map[string]any) any {
 		return m["Age"].(int) * m["Age"].(int)
 	})
 
 	df.PrintTable()
 
-	df2 := df.GroupByIndex("State", func(s ...dataframe.Any) dataframe.Any {
+	df2 := df.GroupByIndex("State", func(s ...any) any {
 		// Sum of ages
 		sum := 0
 		for _, v := range s {
@@ -95,4 +95,8 @@ func main() {
 	}, "Age", "AgeSquared")
 
 	df2.PrintTable()
+
+	df3 := df.GroupByIndex("State", dataframe.Sum, "Age", "AgeSquared")
+	df3.PrintTable()
+
 }

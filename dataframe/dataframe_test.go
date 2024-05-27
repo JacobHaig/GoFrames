@@ -218,3 +218,68 @@ func TestComplexTypeConversion(t *testing.T) {
 	}
 
 }
+
+func TestSimpleGroupByIndex(t *testing.T) {
+	df := NewDataFrame()
+
+	df = df.AddSeries(NewSeries("First Name", []interface{}{"John", "Jack", "John", "Jill", "Jack", "Aaron"}))
+	df = df.AddSeries(NewSeries("Last Name", []interface{}{"Doe", "Smith", "Doe", "Brown", "Smith", "Williams"}))
+	df = df.AddSeries(NewSeries("Age", []interface{}{35, 23, 48, 63, 28, 32}))
+
+	df = df.GroupByIndex("First Name", func(list ...any) any {
+		// Sum of ages
+		sum := 0
+		for _, value := range list {
+			sum += value.(int)
+		}
+		return sum
+	}, "Age")
+
+	row, col := df.Shape()
+	if row != 4 || col != 2 {
+		t.Errorf("Expected 4 rows and 2 columns, got %d rows and %d columns", row, col)
+	}
+	// df.PrintTable()
+
+	// Verify that that the column was correctly populated.
+	df_filtered := df.FilterMap(func(m map[string]interface{}) bool {
+		return m["First Name"].(string) == "Jack"
+	})
+	// df_filtered.PrintTable()
+
+	expected := []interface{}{51}
+	for i, val := range df_filtered.GetSeries("Age").Values {
+		if val != expected[i] {
+			t.Errorf("Expected value %d, got %d", expected[i], val)
+		}
+	}
+}
+
+func TestAggGroupByIndex(t *testing.T) {
+	df := NewDataFrame()
+
+	df = df.AddSeries(NewSeries("First Name", []interface{}{"John", "Jack", "John", "Jill", "Jack", "Aaron"}))
+	df = df.AddSeries(NewSeries("Last Name", []interface{}{"Doe", "Smith", "Doe", "Brown", "Smith", "Williams"}))
+	df = df.AddSeries(NewSeries("Age", []interface{}{35, 23, 48, 63, 28, 32}))
+
+	df = df.GroupByIndex("First Name", Sum, "Age")
+
+	row, col := df.Shape()
+	if row != 4 || col != 2 {
+		t.Errorf("Expected 4 rows and 2 columns, got %d rows and %d columns", row, col)
+	}
+	// df.PrintTable()
+
+	// Verify that that the column was correctly populated.
+	df_filtered := df.FilterMap(func(m map[string]interface{}) bool {
+		return m["First Name"].(string) == "Jack"
+	})
+	// df_filtered.PrintTable()
+
+	expected := []interface{}{51}
+	for i, val := range df_filtered.GetSeries("Age").Values {
+		if val != expected[i] {
+			t.Errorf("Expected value %d, got %d", expected[i], val)
+		}
+	}
+}
