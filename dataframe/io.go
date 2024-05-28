@@ -6,6 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+
+	"github.com/xitongsys/parquet-go-source/local"
+	"github.com/xitongsys/parquet-go/reader"
 )
 
 func ReadCSVtoRows(path string, options ...Options) ([][]string, error) {
@@ -70,6 +73,49 @@ func ReadCSV(path string, options ...Options) (*DataFrame, error) {
 
 	// Create the DataFrame
 	df := NewFromRows(rows, optionsClean)
+
+	return df, nil
+}
+
+func ReadParquet(filename string, options ...Options) (*DataFrame, error) {
+	// optionsClean := standardizeOptions(options...)
+
+	fr, err := local.NewLocalFileReader(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	pr, err := reader.NewParquetColumnReader(fr, 4)
+	if err != nil {
+		return nil, err
+	}
+	// println(rowCounts)
+
+	rowCount := pr.GetNumRows()
+	colCount := pr.SchemaHandler.GetColumnNum()
+
+	df := NewDataFrame()
+
+	for i := range colCount {
+		values, _, _, err := pr.ReadColumnByIndex(int64(i), rowCount)
+		if err != nil {
+			return nil, err
+		}
+
+		// fmt.Println(values)
+		// fmt.Println(rls)
+		// fmt.Println(dls)
+
+		series := NewSeries(pr.SchemaHandler.GetExName(int(i)+1), values)
+		df = df.AddSeries(series)
+	}
+
+	// fmt.Println(pr.SchemaHandler.GetColumnNum())
+	// fmt.Println(pr.SchemaHandler.GetInName(1))
+	// fmt.Println(pr.SchemaHandler.GetExName(1))
+
+	// fmt.Println(pr.SchemaHandler.ValueColumns)
+	// fmt.Println(pr.SchemaHandler.GetTypes())
 
 	return df, nil
 }

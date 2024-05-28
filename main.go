@@ -47,56 +47,103 @@ func test2() {
 	df4.PrintTable()
 }
 
+// "github.com/xitongsys/parquet-go-source/local"
+// "github.com/xitongsys/parquet-go/common"
+// "github.com/xitongsys/parquet-go/reader"
+// "github.com/xitongsys/parquet-go/writer"
+// type Student struct {
+// 	Name   string           `parquet:"name=name, type=BYTE_ARRAY, convertedtype=UTF8"`
+// 	Age    int32            `parquet:"name=age, type=INT32"`
+// 	Id     int64            `parquet:"name=id, type=INT64"`
+// 	Weight float32          `parquet:"name=weight, type=FLOAT"`
+// 	Sex    bool             `parquet:"name=sex, type=BOOLEAN"`
+// 	Day    int32            `parquet:"name=day, type=INT32, convertedtype=DATE"`
+// 	Class  []string         `parquet:"name=class, type=SLICE, convertedtype=SLICE, valuetype=BYTE_ARRAY, valueconvertedtype=UTF8"`
+// 	Score  map[string]int32 `parquet:"name=score, type=MAP, convertedtype=MAP, keytype=BYTE_ARRAY, keyconvertedtype=UTF8, valuetype=INT32"`
+// }
+
+// func testParquet() {
+// 	var err error
+// 	//write
+// 	fw, err := local.NewLocalFileWriter("column.parquet")
+// 	if err != nil {
+// 		log.Println("Can't create file", err)
+// 		return
+// 	}
+// 	pw, err :=
+// 		writer.NewParquetWriter(fw, new(Student), 4)
+// 	if err != nil {
+// 		log.Println("Can't create parquet writer")
+// 		return
+// 	}
+// 	num := int64(10)
+// 	for i := 0; int64(i) < num; i++ {
+// 		stu := Student{
+// 			Name:   "StudentName",
+// 			Age:    int32(20 + i%5),
+// 			Id:     int64(i),
+// 			Weight: float32(50.0 + float32(i)*0.1),
+// 			Sex:    bool(i%2 == 0),
+// 			Day:    int32(time.Now().Unix() / 3600 / 24),
+// 			Class:  []string{"Math", "Physics", "Algorithm"},
+// 			Score:  map[string]int32{"Math": int32(100 - i), "Physics": int32(100 - i), "Algorithm": int32(100 - i)},
+// 		}
+// 		if err = pw.Write(stu); err != nil {
+// 			log.Println("Write error", err)
+// 		}
+// 	}
+// 	if err = pw.WriteStop(); err != nil {
+// 		log.Println("WriteStop error", err)
+// 	}
+// 	log.Println("Write Finished")
+// 	fw.Close()
+
+// 	var names, classes, scores_key, scores_value, ids []interface{}
+// 	var rls, dls []int32
+
+// 	///read
+// 	fr, err := local.NewLocalFileReader("column.parquet")
+// 	if err != nil {
+// 		log.Println("Can't open file", err)
+// 		return
+// 	}
+// 	pr, err := reader.NewParquetColumnReader(fr, 4)
+// 	if err != nil {
+// 		log.Println("Can't create column reader", err)
+// 		return
+// 	}
+// 	num = int64(pr.GetNumRows())
+
+// 	pr.SkipRowsByPath(common.ReformPathStr("parquet_go_root.name"), 5) //skip the first five rows
+// 	names, rls, dls, err = pr.ReadColumnByPath(common.ReformPathStr("parquet_go_root.name"), num)
+// 	log.Println("name", names, rls, dls, err)
+
+// 	classes, rls, dls, err = pr.ReadColumnByPath(common.ReformPathStr("parquet_go_root.class.list.element"), num)
+// 	log.Println("class", classes, rls, dls, err)
+
+// 	scores_key, rls, dls, err = pr.ReadColumnByPath(common.ReformPathStr("parquet_go_root.score.key_value.key"), num)
+// 	scores_value, rls, dls, err = pr.ReadColumnByPath(common.ReformPathStr("parquet_go_root.score.key_value.value"), num)
+// 	log.Println("parquet_go_root.scores_key", scores_key, err)
+// 	log.Println("parquet_go_root.scores_value", scores_value, err)
+
+// 	pr.SkipRowsByIndex(2, 5) //skip the first five rows
+// 	ids, _, _, _ = pr.ReadColumnByIndex(2, num)
+// 	log.Println(ids)
+
+// 	pr.ReadStop()
+// 	fr.Close()
+// }
+
 func main() {
-	// read csv
-	df, err := dataframe.ReadCSV("data/addresses.csv", dataframe.Options{
-		"delimiter":        ',',
-		"trimleadingspace": true,
-		"header":           true,
-	})
+	df, err := dataframe.ReadParquet("data/addresses.parquet")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	fmt.Println(df.ColumnNames())
-	fmt.Println(df.Shape())
-
-	// df.DropColumn("First Name", "Last Name", "Address", "City", "State", "Zip")
-	// // df.PrintTable()
-	// df.GetSeries("Age").AsType("float")
-
-	// df2 := df.ApplyMap("Age2", func(m map[string]interface{}) interface{} {
-	// 	return m["Age"].(float64) * 2.56
-	// })
-	// df2.GetSeries("Age2").AsType("string")
-
-	// // df2.PrintTable()
-
-	// df3 := df2.ApplyMap("Age2", func(m map[string]interface{}) interface{} {
-	// 	return m["Age2"].(string) + " = idk"
-	// })
-	// df3.GetSeries("Age2").AsType("string")
-	// df3.PrintTable()
-	df.AsType("Age", "int")
-	df = df.ApplyMap("AgeSquared", func(m map[string]any) any {
-		return m["Age"].(int) * m["Age"].(int)
-	})
-
 	df.PrintTable()
 
-	df2 := df.GroupByIndex("State", func(s ...any) any {
-		// Sum of ages
-		sum := 0
-		for _, v := range s {
-			sum += v.(int)
-		}
-		return sum
-	}, "Age", "AgeSquared")
+	df = df.AsType("First Name", "string")
 
-	df2.PrintTable()
-
-	df3 := df.GroupByIndex("State", dataframe.Sum, "Age", "AgeSquared")
-	df3.PrintTable()
-
+	df.PrintTable()
 }
