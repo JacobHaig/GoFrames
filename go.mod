@@ -1,4 +1,4 @@
-module github.com/JacobHaig/goframes
+module github.com/JacobHaig/GoFrames
 
 go 1.22.1
 

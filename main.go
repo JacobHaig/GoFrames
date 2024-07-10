@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	dataframe "github.com/JacobHaig/goframes/dataframe"
+	dataframe "github.com/JacobHaig/GoFrames/dataframe"
 )
 
 func test2() {
