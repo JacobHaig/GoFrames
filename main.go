@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	dataframe "goframe/dataframe"
 	"os"
+
+	dataframe "github.com/jacobhaig/goframes/dataframe"
 )
 
 func test2() {
