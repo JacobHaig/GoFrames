@@ -3,8 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime/pprof"
+	"time"
 
-	dataframe "github.com/JacobHaig/GoFrames/dataframe"
+	_ "net/http/pprof"
+
+	"github.com/JacobHaig/GoFrames/dataframe"
 )
 
 func test2() {
@@ -18,7 +22,7 @@ func test2() {
 		os.Exit(1)
 	}
 
-	df3 := df.ApplyIndex("Full Name", func(a ...interface{}) interface{} {
+	df3 := df.ApplyIndex("Full Name", func(a ...any) any {
 		return a[0].(string) + " " + a[1].(string)
 	}, "First Name", "Last Name")
 
@@ -37,12 +41,12 @@ func test2() {
 	df3.DropColumn("Full Name")
 	df3.PrintTable()
 
-	df5 := df3.FilterIndex(func(a ...interface{}) bool {
+	df5 := df3.FilterIndex(func(a ...any) bool {
 		return a[0].(string) != "Tyler"
 	}, "Last Name")
 	df5.PrintTable()
 
-	df4 := df3.FilterMap(func(m map[string]interface{}) bool {
+	df4 := df3.FilterMap(func(m map[string]any) bool {
 		return m["First Name"].(string) != "Jack"
 	})
 	df4.PrintTable()
@@ -99,7 +103,7 @@ func test2() {
 // 	log.Println("Write Finished")
 // 	fw.Close()
 
-// 	var names, classes, scores_key, scores_value, ids []interface{}
+// 	var names, classes, scores_key, scores_value, ids []any
 // 	var rls, dls []int32
 
 // 	///read
@@ -136,15 +140,30 @@ func test2() {
 // }
 
 func main() {
-	df, err := dataframe.ReadParquet("data/addresses.parquet")
+
+	// p := profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook)
+	// p.Stop()
+
+	// Start profiling
+	f, _ := os.Create("profile.prof")
+
+	startTime := time.Now()
+
+	pprof.StartCPUProfile(f)
+	df, err := dataframe.ReadCSVStandalone("data/output.txt", dataframe.Options{
+		"delimiter": ';',
+		// "trimleadingspace": true,
+	})
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
 	}
+	pprof.StopCPUProfile()
 
 	df.PrintTable()
 
-	df = df.AsType("First Name", "string")
+	elapsedTime := time.Since(startTime)
+	fmt.Println("Elapsed time:", elapsedTime)
 
-	df.PrintTable()
+	// time.Sleep(1000 * time.Second)
+
 }

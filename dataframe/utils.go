@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type Options map[string]interface{}
+type Options map[string]any
 
 func standardizeOptions(options ...Options) Options {
 	if len(options) == 0 {
@@ -21,14 +21,14 @@ func standardizeOptions(options ...Options) Options {
 	return options[0]
 }
 
-func (options Options) getOption(key string, defaultValue interface{}) interface{} {
+func (options Options) getOption(key string, defaultValue any) any {
 	if val, ok := options[key]; ok {
 		return val
 	}
 	return defaultValue
 }
 
-func allSameType(values []interface{}) bool {
+func allSameType(values []any) bool {
 	if len(values) == 0 {
 		return true
 	}
@@ -45,8 +45,8 @@ func allSameType(values []interface{}) bool {
 }
 
 // FlattenInterface flattens a slice of slices of interfaces into a single slice of T
-// This can flatten [][]interface{} into []T or []interface{} into []T
-func flattenInterface[T interface{}](acc []T, arr interface{}) ([]T, error) {
+// This can flatten [][]any into []T or []any into []T
+func flattenInterface[T any](acc []T, arr any) ([]T, error) {
 
 	var err error
 	switch v := arr.(type) {
@@ -55,14 +55,14 @@ func flattenInterface[T interface{}](acc []T, arr interface{}) ([]T, error) {
 		acc = append(acc, v...)
 	case T:
 		acc = append(acc, v)
-	case []interface{}:
+	case []any:
 		for _, elem := range v {
 			acc, err = flattenInterface(acc, elem)
 			if err != nil {
 				return nil, err
 			}
 		}
-	case [][]interface{}:
+	case [][]any:
 		for _, elem := range v {
 			acc, err = flattenInterface(acc, elem)
 			if err != nil {
@@ -79,8 +79,8 @@ func flattenInterface[T interface{}](acc []T, arr interface{}) ([]T, error) {
 
 // FlattenInterface flattens a slice of slices of interfaces into a single slice of T
 //
-// This can flatten [][]interface{} into []T or []interface{} into []T
-func InterfaceToTypeSlice[T interface{}](values ...interface{}) []T {
+// This can flatten [][]any into []T or []any into []T
+func InterfaceToTypeSlice[T any](values ...any) []T {
 	result, err := flattenInterface([]T{}, values)
 
 	if err != nil {

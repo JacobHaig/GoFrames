@@ -6,8 +6,6 @@ import (
 	"slices"
 )
 
-type any = interface{}
-
 type DataFrame struct {
 	series []*Series
 }

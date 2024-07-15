@@ -10,14 +10,20 @@ import (
 
 type Series struct {
 	Name   string
-	Values []interface{}
+	Values []any
+	Type   reflect.Type
+}
+
+type Series2 struct {
+	Name   string
+	Values any // Contains a slice of strings, ints, floats, etc.
 	Type   reflect.Type
 }
 
 // NewSeries returns a new Series.
 //
 // This should be used to create a new Series over the Series struct.
-func NewSeries(name string, values []interface{}) *Series {
+func NewSeries(name string, values []any) *Series {
 	if len(values) == 0 {
 		return &Series{name, values, nil}
 	}
@@ -34,13 +40,13 @@ func NewSeries(name string, values []interface{}) *Series {
 	return &Series{name, values, realType}
 }
 
-func NewSeriesWithType(name string, values []interface{}, valueType string) *Series {
+func NewSeriesWithType(name string, values []any, valueType string) *Series {
 	series := NewSeries(name, values)
 	series.AsType(valueType)
 	return series
 }
 
-func parseType(value interface{}) reflect.Type {
+func parseType(value any) reflect.Type {
 	return reflect.TypeOf(value)
 }
 
@@ -73,7 +79,7 @@ func (s *Series) AsType(valueType string) *Series {
 	return s
 }
 
-func convertToType(value interface{}, newType string) interface{} {
+func convertToType(value any, newType string) any {
 	switch newType {
 	case "int":
 		i, err := strconv.Atoi(value.(string))
@@ -130,7 +136,7 @@ func (s *Series) InferType() reflect.Type {
 	return s.Type
 }
 
-func (s *Series) Get(index int) interface{} {
+func (s *Series) Get(index int) any {
 	return s.Values[index]
 }
 
@@ -139,7 +145,7 @@ func (s *Series) Get(index int) interface{} {
 // If deep is set to true, the function will create a deep copy of the Series.
 func (s *Series) Copy(deep bool) *Series {
 	if deep {
-		newValues := make([]interface{}, len(s.Values))
+		newValues := make([]any, len(s.Values))
 		copy(newValues, s.Values)
 		return NewSeries(s.Name, newValues)
 	}

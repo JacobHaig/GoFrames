@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/xitongsys/parquet-go-source/local"
@@ -62,17 +63,155 @@ func ReadCSVtoRows(path string, options ...Options) ([][]string, error) {
 	return rows, nil
 }
 
-func ReadCSV(path string, options ...Options) (*DataFrame, error) {
+func ReadCSVtoColumns(path string, options ...Options) ([][]string, error) {
+	// Standardize the keys
 	optionsClean := standardizeOptions(options...)
+	delimiter := optionsClean.getOption("delimiter", ',').(rune)
+	trimLeadingSpace := optionsClean.getOption("trimleadingspace", false).(bool)
+	debug := optionsClean.getOption("debug", false).(bool)
 
 	// Read the file
-	rows, err := ReadCSVtoRows(path, optionsClean)
+	file, err := os.Open(path)
 	if err != nil {
+		fmt.Println("Error reading file:", path)
+		fmt.Println(err)
 		return nil, err
 	}
 
+	// Create a CSV Reader
+	buf := bufio.NewReader(file)
+	csvReader := csv.NewReader(buf)
+
+	csvReader.Comma = delimiter
+	csvReader.TrimLeadingSpace = trimLeadingSpace
+
+	// Prevent incompatible options
+	if csvReader.TrimLeadingSpace && (csvReader.Comma == ' ' || csvReader.Comma == '\t') {
+		return nil, errors.New("error: trimleadingspace is true, but the delimiter is a space or tab. these are incompatible options")
+	}
+
+	if debug {
+		fmt.Println("Delimiter:", "("+string(csvReader.Comma)+")")
+		fmt.Println("TrimLeadingSpace:", csvReader.TrimLeadingSpace)
+	}
+
+	columns := [][]string{}
+
+	// Read the CSV
+	for {
+		row, err := csvReader.Read()
+		if err == io.EOF {
+			break
+		}
+
+		for index, item := range row {
+			if len(columns) <= index {
+				columns = append(columns, []string{})
+			}
+			columns[index] = append(columns[index], item)
+		}
+
+		if err != nil {
+			fmt.Println(err)
+			return nil, err
+		}
+	}
+
+	return columns, nil
+}
+
+func ReadCSVStandalone(path string, options ...Options) (*DataFrame, error) {
+	// Standardize the keys
+	optionsClean := standardizeOptions(options...)
+
+	delimiter := optionsClean.getOption("delimiter", ',').(rune)
+	trimLeadingSpace := optionsClean.getOption("trimleadingspace", false).(bool)
+	headerOption := optionsClean.getOption("header", false).(bool)
+	debug := optionsClean.getOption("debug", false).(bool)
+
+	// Read the file
+	file, err := os.Open(path)
+	if err != nil {
+		fmt.Println("Error reading file:", path)
+		fmt.Println(err)
+		return nil, err
+	}
+
+	// Create a CSV Reader
+	buf := bufio.NewReader(file)
+	csvReader := csv.NewReader(buf)
+
+	csvReader.Comma = delimiter
+	csvReader.TrimLeadingSpace = trimLeadingSpace
+
+	// Prevent incompatible options
+	if csvReader.TrimLeadingSpace && (csvReader.Comma == ' ' || csvReader.Comma == '\t') {
+		return nil, errors.New("error: trimleadingspace is true, but the delimiter is a space or tab. these are incompatible options")
+	}
+
+	if debug {
+		fmt.Println("Delimiter:", "("+string(csvReader.Comma)+")")
+		fmt.Println("TrimLeadingSpace:", csvReader.TrimLeadingSpace)
+	}
+
+	columns := [][]any{}
+
+	// Read the CSV
+	for {
+		row, err := csvReader.Read()
+		if err == io.EOF {
+			break
+		}
+
+		for index, item := range row {
+			if len(columns) <= index {
+				columns = append(columns, []any{})
+			}
+			columns[index] = append(columns[index], item)
+		}
+
+		if err != nil {
+			fmt.Println(err)
+			return nil, err
+		}
+	}
+
+	// Prefill header with default values
+	header := []string{}
+	for index := range len(columns) {
+		header = append(header, fmt.Sprintf("Column %d", index))
+	}
+
+	// Check if header is present
+	if headerOption {
+		for index, column := range columns {
+			if len(column) > 0 {
+				header[index] = column[0].(string)
+				columns[index] = column[1:]
+			}
+		}
+	}
+
+	// Create the Series
+	series := []*Series{}
+
+	for index, column := range columns {
+		newSeries := NewSeries(header[index], column)
+		series = append(series, newSeries)
+	}
+
+	return &DataFrame{series}, nil
+
+}
+
+func ReadCSV(path string, options ...Options) (*DataFrame, error) {
+	optionsClean := standardizeOptions(options...)
+
 	// Create the DataFrame
-	df := NewFromRows(rows, optionsClean)
+	df, err := ReadCSVStandalone(path, optionsClean)
+	if err != nil {
+		return nil, err
+	}
 
 	return df, nil
 }
@@ -143,11 +282,47 @@ func NewFromRows(rows [][]string, options ...Options) *DataFrame {
 	series := []*Series{}
 
 	for index, row := range rows {
-		newRow := []interface{}{}
+		newRow := []any{}
 		for _, cell := range row {
 			newRow = append(newRow, cell)
 		}
 		series = append(series, NewSeries(header[index], newRow))
+	}
+
+	return &DataFrame{series}
+}
+
+func NewFromColumns(columns [][]string, options ...Options) *DataFrame {
+	optionsClean := standardizeOptions(options...)
+	headerOption := optionsClean.getOption("header", false).(bool)
+
+	// Prefill header with default values
+	header := []string{}
+	for index := range len(columns) {
+		header = append(header, fmt.Sprintf("Column %d", index))
+	}
+
+	// Check if header is present
+	if headerOption {
+		for index, column := range columns {
+			if len(column) > 0 {
+				header[index] = column[0]
+				columns[index] = column[1:]
+			}
+		}
+	}
+
+	// Create the Series
+	series := []*Series{}
+
+	for index, column := range columns {
+		newColumn := []any{}
+
+		for _, cell := range column {
+			newColumn = append(newColumn, cell)
+		}
+
+		series = append(series, NewSeries(header[index], newColumn))
 	}
 
 	return &DataFrame{series}
@@ -167,7 +342,7 @@ func (df *DataFrame) WriteCSV(path string, options ...Options) error {
 		header = df.ColumnNames()
 	}
 
-	columns := [][]string{} // Todo: Change to [][]interface{}
+	columns := [][]string{} // Todo: Change to [][]any
 	for _, series := range df.series {
 		seriesValues := InterfaceToTypeSlice[string](series.Values)
 		columns = append(columns, seriesValues)

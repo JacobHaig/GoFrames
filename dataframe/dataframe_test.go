@@ -8,11 +8,11 @@ import (
 func TestNewDataFrame(t *testing.T) {
 	df := NewDataFrame()
 
-	df = df.AddSeries(NewSeries("First Name", []interface{}{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
-	df = df.AddSeries(NewSeries("Last Name", []interface{}{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
-	df = df.AddSeries(NewSeries("Age", []interface{}{35, 23, 48, 63, 28, 32}))
+	df = df.AddSeries(NewSeries("First Name", []any{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
+	df = df.AddSeries(NewSeries("Last Name", []any{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
+	df = df.AddSeries(NewSeries("Age", []any{35, 23, 48, 63, 28, 32}))
 
-	df = df.AddRow([]interface{}{"Jane", 29, "Doe"})
+	df = df.AddRow([]any{"Jane", 29, "Doe"})
 	// df.PrintTable()
 
 	row, col := df.Shape()
@@ -33,11 +33,11 @@ func TestNewDataFrame(t *testing.T) {
 func TestFilterMap(t *testing.T) {
 	df := NewDataFrame()
 
-	df = df.AddSeries(NewSeries("First Name", []interface{}{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
-	df = df.AddSeries(NewSeries("Last Name", []interface{}{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
-	df = df.AddSeries(NewSeries("Age", []interface{}{35, 23, 48, 63, 28, 32}))
+	df = df.AddSeries(NewSeries("First Name", []any{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
+	df = df.AddSeries(NewSeries("Last Name", []any{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
+	df = df.AddSeries(NewSeries("Age", []any{35, 23, 48, 63, 28, 32}))
 
-	df = df.FilterMap(func(m map[string]interface{}) bool {
+	df = df.FilterMap(func(m map[string]any) bool {
 		return m["Age"].(int) > 30
 	})
 
@@ -46,7 +46,7 @@ func TestFilterMap(t *testing.T) {
 		t.Errorf("Expected 4 rows and 3 columns, got %d rows and %d columns", row, col)
 	}
 
-	df = df.FilterMap(func(m map[string]interface{}) bool {
+	df = df.FilterMap(func(m map[string]any) bool {
 		return m["Last Name"].(string) != "Smith"
 	})
 
@@ -59,9 +59,9 @@ func TestFilterMap(t *testing.T) {
 func TestDeleteColumn(t *testing.T) {
 	df := NewDataFrame()
 
-	df = df.AddSeries(NewSeries("First Name", []interface{}{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
-	df = df.AddSeries(NewSeries("Last Name", []interface{}{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
-	df = df.AddSeries(NewSeries("Age", []interface{}{35, 23, 48, 63, 28, 32}))
+	df = df.AddSeries(NewSeries("First Name", []any{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
+	df = df.AddSeries(NewSeries("Last Name", []any{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
+	df = df.AddSeries(NewSeries("Age", []any{35, 23, 48, 63, 28, 32}))
 
 	df = df.DropColumn("Age")
 	// df.PrintTable()
@@ -71,7 +71,7 @@ func TestDeleteColumn(t *testing.T) {
 		t.Errorf("Expected 6 rows and 2 columns, got %d rows and %d columns", row, col)
 	}
 
-	df = df.AddSeries(NewSeries("Age", []interface{}{35, 23, 48, 63, 28, 32}))
+	df = df.AddSeries(NewSeries("Age", []any{35, 23, 48, 63, 28, 32}))
 
 	row, col = df.Shape()
 	if row != 6 || col != 3 {
@@ -90,16 +90,16 @@ func TestDeleteColumn(t *testing.T) {
 func TestApplyIndex(t *testing.T) {
 	df := NewDataFrame()
 
-	df = df.AddSeries(NewSeries("First Name", []interface{}{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
-	df = df.AddSeries(NewSeries("Last Name", []interface{}{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
-	df = df.AddSeries(NewSeries("Age", []interface{}{"35", "23", "48", "63", "28", "32"}))
+	df = df.AddSeries(NewSeries("First Name", []any{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
+	df = df.AddSeries(NewSeries("Last Name", []any{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
+	df = df.AddSeries(NewSeries("Age", []any{"35", "23", "48", "63", "28", "32"}))
 
-	df1 := df.ApplyIndex("Full Name", func(a ...interface{}) interface{} {
+	df1 := df.ApplyIndex("Full Name", func(a ...any) any {
 		return a[0].(string) + " " + a[1].(string)
 	}, "First Name", "Last Name")
 
 	// Verify that that the column was correctly populated.
-	expected := []interface{}{"John Doe", "Jack Smith", "Tyler Johnson", "Jill Brown", "Kenny Peters", "Aaron Williams"}
+	expected := []any{"John Doe", "Jack Smith", "Tyler Johnson", "Jill Brown", "Kenny Peters", "Aaron Williams"}
 	for i, val := range df1.GetSeries("Full Name").Values {
 		if val != expected[i] {
 			t.Errorf("Expected value %s, got %s", expected[i], val)
@@ -113,13 +113,13 @@ func TestApplyIndex(t *testing.T) {
 	// df1.PrintTable()
 
 	// This version allows use to return a different type.
-	df2 := df1.ApplyIndex("Age Int", func(a ...interface{}) interface{} {
+	df2 := df1.ApplyIndex("Age Int", func(a ...any) any {
 		i, _ := strconv.Atoi(a[0].(string))
 		return i
 	}, "Age")
 
 	// Verify that that the column was correctly populated.
-	expected = []interface{}{35, 23, 48, 63, 28, 32}
+	expected = []any{35, 23, 48, 63, 28, 32}
 	for i, val := range df2.GetSeries("Age Int").Values {
 		if val != expected[i] {
 			t.Errorf("Expected value %d, got %d", expected[i], val)
@@ -129,9 +129,9 @@ func TestApplyIndex(t *testing.T) {
 
 	// This version allows you to get the entire column as a slice. From
 	// there you can do whatever you want with it.
-	df3 := df2.ApplySeries("Age Cubed", func(s ...[]interface{}) []interface{} {
+	df3 := df2.ApplySeries("Age Cubed", func(s ...[]any) []any {
 		s1 := s[0] // The index refers to the "Age" column passed in below.
-		s2 := make([]interface{}, len(s1))
+		s2 := make([]any, len(s1))
 
 		for index, val := range s1 {
 			i, _ := strconv.Atoi(val.(string))
@@ -141,7 +141,7 @@ func TestApplyIndex(t *testing.T) {
 	}, "Age")
 
 	// Verify that that the column was correctly populated.
-	expected = []interface{}{35 * 35 * 35, 23 * 23 * 23, 48 * 48 * 48, 63 * 63 * 63, 28 * 28 * 28, 32 * 32 * 32}
+	expected = []any{35 * 35 * 35, 23 * 23 * 23, 48 * 48 * 48, 63 * 63 * 63, 28 * 28 * 28, 32 * 32 * 32}
 	for i, val := range df3.GetSeries("Age Cubed").Values {
 		if val != expected[i] {
 			t.Errorf("Expected value %d, got %d", expected[i], val)
@@ -152,10 +152,10 @@ func TestApplyIndex(t *testing.T) {
 func TestSimpleTypeConversion(t *testing.T) {
 	df := NewDataFrame()
 
-	df = df.AddSeries(NewSeries("First Name", []interface{}{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
-	df = df.AddSeries(NewSeriesWithType("Age", []interface{}{35, 23, 48, 63, 28, 32}, "int"))
-	df = df.AddSeries(NewSeries("Is Student", []interface{}{true, false, true, false, true, false}))
-	df = df.AddSeries(NewSeries("Height", []interface{}{5.8, 6.1, 5.9, 5.6, 6.0, 5.7}))
+	df = df.AddSeries(NewSeries("First Name", []any{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
+	df = df.AddSeries(NewSeriesWithType("Age", []any{35, 23, 48, 63, 28, 32}, "int"))
+	df = df.AddSeries(NewSeries("Is Student", []any{true, false, true, false, true, false}))
+	df = df.AddSeries(NewSeries("Height", []any{5.8, 6.1, 5.9, 5.6, 6.0, 5.7}))
 
 	// df.PrintTable()
 
@@ -163,13 +163,13 @@ func TestSimpleTypeConversion(t *testing.T) {
 	df = df.AsType("Is Student", "int")
 	df = df.AsType("Height", "int")
 
-	df2 := df.ApplyMap("Age", func(m map[string]interface{}) interface{} {
+	df2 := df.ApplyMap("Age", func(m map[string]any) any {
 		return m["Age"].(float64) * 2.56
 	})
-	df2 = df2.ApplyMap("Is Student", func(m map[string]interface{}) interface{} {
+	df2 = df2.ApplyMap("Is Student", func(m map[string]any) any {
 		return m["Is Student"].(int) * 2
 	})
-	df2 = df2.ApplyMap("Height", func(m map[string]interface{}) interface{} {
+	df2 = df2.ApplyMap("Height", func(m map[string]any) any {
 		return m["Height"].(int) * 2
 	})
 
@@ -192,25 +192,25 @@ func TestSimpleTypeConversion(t *testing.T) {
 func TestComplexTypeConversion(t *testing.T) {
 	df := NewDataFrame()
 
-	df = df.AddSeries(NewSeries("First Name", []interface{}{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
-	df = df.AddSeries(NewSeries("Last Name", []interface{}{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
-	df = df.AddSeries(NewSeries("Age", []interface{}{35, 23, 48, 63, 28, 32}))
+	df = df.AddSeries(NewSeries("First Name", []any{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
+	df = df.AddSeries(NewSeries("Last Name", []any{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
+	df = df.AddSeries(NewSeries("Age", []any{35, 23, 48, 63, 28, 32}))
 	df.GetSeries("Age").AsType("float")
 
-	df2 := df.ApplyMap("Age2", func(m map[string]interface{}) interface{} {
+	df2 := df.ApplyMap("Age2", func(m map[string]any) any {
 		return float64(int(m["Age"].(float64)*2.56*100.0)) / 100.0
 	})
 	df2.GetSeries("Age2").AsType("string")
 	// df2.PrintTable()
 
-	df3 := df2.ApplyMap("Age2", func(m map[string]interface{}) interface{} {
+	df3 := df2.ApplyMap("Age2", func(m map[string]any) any {
 		return m["Age2"].(string) + " = idk"
 	})
 	df3.GetSeries("Age2").AsType("string")
 	// df3.PrintTable()
 
 	// Verify that that the column was correctly populated.
-	expected := []interface{}{"89.6 = idk", "58.88 = idk", "122.88 = idk", "161.28 = idk", "71.68 = idk", "81.92 = idk"}
+	expected := []any{"89.6 = idk", "58.88 = idk", "122.88 = idk", "161.28 = idk", "71.68 = idk", "81.92 = idk"}
 	for i, val := range df3.GetSeries("Age2").Values {
 		if val != expected[i] {
 			t.Errorf("Expected value %s, got %s", expected[i], val)
@@ -222,9 +222,9 @@ func TestComplexTypeConversion(t *testing.T) {
 func TestSimpleGroupByIndex(t *testing.T) {
 	df := NewDataFrame()
 
-	df = df.AddSeries(NewSeries("First Name", []interface{}{"John", "Jack", "John", "Jill", "Jack", "Aaron"}))
-	df = df.AddSeries(NewSeries("Last Name", []interface{}{"Doe", "Smith", "Doe", "Brown", "Smith", "Williams"}))
-	df = df.AddSeries(NewSeries("Age", []interface{}{35, 23, 48, 63, 28, 32}))
+	df = df.AddSeries(NewSeries("First Name", []any{"John", "Jack", "John", "Jill", "Jack", "Aaron"}))
+	df = df.AddSeries(NewSeries("Last Name", []any{"Doe", "Smith", "Doe", "Brown", "Smith", "Williams"}))
+	df = df.AddSeries(NewSeries("Age", []any{35, 23, 48, 63, 28, 32}))
 
 	df = df.GroupByIndex("First Name", func(list ...any) any {
 		// Sum of ages
@@ -242,12 +242,12 @@ func TestSimpleGroupByIndex(t *testing.T) {
 	// df.PrintTable()
 
 	// Verify that that the column was correctly populated.
-	df_filtered := df.FilterMap(func(m map[string]interface{}) bool {
+	df_filtered := df.FilterMap(func(m map[string]any) bool {
 		return m["First Name"].(string) == "Jack"
 	})
 	// df_filtered.PrintTable()
 
-	expected := []interface{}{51}
+	expected := []any{51}
 	for i, val := range df_filtered.GetSeries("Age").Values {
 		if val != expected[i] {
 			t.Errorf("Expected value %d, got %d", expected[i], val)
@@ -258,9 +258,9 @@ func TestSimpleGroupByIndex(t *testing.T) {
 func TestAggGroupByIndex(t *testing.T) {
 	df := NewDataFrame()
 
-	df = df.AddSeries(NewSeries("First Name", []interface{}{"John", "Jack", "John", "Jill", "Jack", "Aaron"}))
-	df = df.AddSeries(NewSeries("Last Name", []interface{}{"Doe", "Smith", "Doe", "Brown", "Smith", "Williams"}))
-	df = df.AddSeries(NewSeries("Age", []interface{}{35, 23, 48, 63, 28, 32}))
+	df = df.AddSeries(NewSeries("First Name", []any{"John", "Jack", "John", "Jill", "Jack", "Aaron"}))
+	df = df.AddSeries(NewSeries("Last Name", []any{"Doe", "Smith", "Doe", "Brown", "Smith", "Williams"}))
+	df = df.AddSeries(NewSeries("Age", []any{35, 23, 48, 63, 28, 32}))
 
 	df = df.GroupByIndex("First Name", Sum, "Age")
 
@@ -271,12 +271,12 @@ func TestAggGroupByIndex(t *testing.T) {
 	// df.PrintTable()
 
 	// Verify that that the column was correctly populated.
-	df_filtered := df.FilterMap(func(m map[string]interface{}) bool {
+	df_filtered := df.FilterMap(func(m map[string]any) bool {
 		return m["First Name"].(string) == "Jack"
 	})
 	// df_filtered.PrintTable()
 
-	expected := []interface{}{51}
+	expected := []any{51}
 	for i, val := range df_filtered.GetSeries("Age").Values {
 		if val != expected[i] {
 			t.Errorf("Expected value %d, got %d", expected[i], val)

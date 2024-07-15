@@ -28,7 +28,7 @@ import (
 // period
 // mixed
 
-func convertValue(value interface{}, newType string) (interface{}, error) {
+func convertValue(value any, newType string) (any, error) {
 	switch newType {
 	case "int":
 		i, err := convertToInt(value)
@@ -51,7 +51,7 @@ func convertValue(value interface{}, newType string) (interface{}, error) {
 	return nil, errors.New("error: unknown type")
 }
 
-func convertToInt(value interface{}) (int, error) {
+func convertToInt(value any) (int, error) {
 	switch v := value.(type) {
 	case int:
 		return v, nil
@@ -83,7 +83,7 @@ func convertStringToInt(value string) (int, error) {
 	return i, nil
 }
 
-func convertToFloat(value interface{}) (float64, error) {
+func convertToFloat(value any) (float64, error) {
 	switch v := value.(type) {
 	case int:
 		return float64(v), nil
@@ -110,11 +110,11 @@ func convertStringToFloat(value string) (float64, error) {
 	return f, nil
 }
 
-func convertToString(value interface{}) string {
+func convertToString(value any) string {
 	return fmt.Sprint(value)
 }
 
-func convertToBool(value interface{}) bool {
+func convertToBool(value any) bool {
 	switch v := value.(type) {
 	case bool:
 		return v
