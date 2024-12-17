@@ -3,15 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
-	"runtime/pprof"
-	"time"
 
 	_ "net/http/pprof"
 
 	"github.com/JacobHaig/GoFrames/dataframe"
 )
 
-func test2() {
+func main() {
 	df, err := dataframe.ReadCSV("data/addresses.csv", dataframe.Options{
 		"delimiter":        ',',
 		"trimleadingspace": true,
@@ -139,31 +137,31 @@ func test2() {
 // 	fr.Close()
 // }
 
-func main() {
+// func main() {
 
-	// p := profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook)
-	// p.Stop()
+// p := profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook)
+// p.Stop()
 
-	// Start profiling
-	f, _ := os.Create("profile.prof")
+// Start profiling
+// f, _ := os.Create("profile.prof")
 
-	startTime := time.Now()
+// startTime := time.Now()
 
-	pprof.StartCPUProfile(f)
-	df, err := dataframe.ReadCSVStandalone("data/output.txt", dataframe.Options{
-		"delimiter": ';',
-		// "trimleadingspace": true,
-	})
-	if err != nil {
-		fmt.Println(err)
-	}
-	pprof.StopCPUProfile()
+// pprof.StartCPUProfile(f)
+// df, err := dataframe.ReadCSVStandalone("data/output.txt", dataframe.Options{
+// 	"delimiter": ';',
+// 	// "trimleadingspace": true,
+// })
+// if err != nil {
+// 	fmt.Println(err)
+// }
+// pprof.StopCPUProfile()
 
-	df.PrintTable()
+// df.PrintTable()
 
-	elapsedTime := time.Since(startTime)
-	fmt.Println("Elapsed time:", elapsedTime)
+// elapsedTime := time.Since(startTime)
+// fmt.Println("Elapsed time:", elapsedTime)
 
-	// time.Sleep(1000 * time.Second)
+// time.Sleep(1000 * time.Second)
 
-}
+// }
