@@ -54,9 +54,6 @@ func (df *DataFrame) HasColumn(columnName string) bool {
 }
 
 // Shape returns the height and width of the DataFrame.
-//
-// The height is the number of rows in the DataFrame.
-// The width is the number of columns in the DataFrame.
 func (df *DataFrame) Shape() (int, int) {
 	if len(df.series) == 0 {
 		return 0, 0

@@ -3,54 +3,97 @@ package main
 import (
 	"fmt"
 	"os"
-	"runtime/pprof"
-	"time"
 
 	_ "net/http/pprof"
 
-	"github.com/JacobHaig/GoFrames/dataframe"
+	"teddy/dataframe"
 )
 
-func test2() {
-	df, err := dataframe.ReadCSV("data/addresses.csv", dataframe.Options{
-		"delimiter":        ',',
-		"trimleadingspace": true,
-		"header":           true,
-	})
+func main() {
+
+	df, err := dataframe.
+		Read().
+		FileType("csv").
+		FilePath("data/addresses.csv").
+		Option("delimiter", ',').
+		Option("trimleadingspace", true).
+		Option("header", true).
+		Load()
+
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	df3 := df.ApplyIndex("Full Name", func(a ...any) any {
-		return a[0].(string) + " " + a[1].(string)
-	}, "First Name", "Last Name")
+	df.PrintTable()
 
-	df3.PrintTable()
+	df = df.
+		Select("First Name", "Last Name").
+		ApplyIndex("Full Name", func(a ...any) any {
+			return a[0].(string) + " " + a[1].(string)
+		}, "First Name", "Last Name").
+		FilterMap(func(m map[string]any) bool {
+			return m["First Name"].(string) != "Jack"
+		}).
+		DropColumn("Last Name")
 
-	series := df3.GetSeries("Full Name", dataframe.Options{"copy": true})
-	df3.DropColumn("Full Name")
-	df3.PrintTable()
+	df.PrintTable()
 
-	for i := range series.Values {
-		series.Values[i] = series.Values[i].(string) + "!"
+	err = df.
+		Write().
+		FileType("csv").
+		FilePath("data/output.csv").
+		Option("delimiter", ';').
+		Option("trimleadingspace", true).
+		Option("header", true).
+		Save()
+
+	if err != nil {
+		fmt.Println(err)
 	}
-
-	df3.AddSeries(series)
-	df3.PrintTable()
-	df3.DropColumn("Full Name")
-	df3.PrintTable()
-
-	df5 := df3.FilterIndex(func(a ...any) bool {
-		return a[0].(string) != "Tyler"
-	}, "Last Name")
-	df5.PrintTable()
-
-	df4 := df3.FilterMap(func(m map[string]any) bool {
-		return m["First Name"].(string) != "Jack"
-	})
-	df4.PrintTable()
 }
+
+// func main() {
+// 	df, err := dataframe.ReadCSV("data/addresses.csv",
+// 	dataframe.Options{
+// 		"delimiter":        ',',
+// 		"trimleadingspace": true,
+// 		"header":           true,
+// 	})
+// 	if err != nil {
+// 		fmt.Println(err)
+// 		os.Exit(1)
+// 	}
+
+// 	df3 := df.ApplyIndex("Full Name", func(a ...any) any {
+// 		return a[0].(string) + " " + a[1].(string)
+// 	}, "First Name", "Last Name")
+
+// 	df3.PrintTable()
+
+// 	series := df3.GetSeries("Full Name", dataframe.Options{"copy": true})
+// 	df3.DropColumn("Full Name")
+// 	df3.PrintTable()
+
+// 	for i := range series.Values {
+// 		series.Values[i] = series.Values[i].(string) + "!"
+// 	}
+
+// 	df3.AddSeries(series)
+// 	df3.PrintTable()
+// 	df3.DropColumn("Full Name")
+// 	df3.PrintTable()
+
+// 	df5 := df3.FilterIndex(func(a ...any) bool {
+// 		return a[0].(string) != "Tyler"
+// 	}, "Last Name")
+// 	df5.PrintTable()
+
+// 	df4 := df3.FilterMap(func(m map[string]any) bool {
+// 		return m["First Name"].(string) != "Jack"
+// 	})
+// 	df4.PrintTable()
+// }
 
 // "github.com/xitongsys/parquet-go-source/local"
 // "github.com/xitongsys/parquet-go/common"
@@ -139,31 +182,31 @@ func test2() {
 // 	fr.Close()
 // }
 
-func main() {
+// func profile() {
 
-	// p := profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook)
-	// p.Stop()
+// 	// p := profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook)
+// 	// p.Stop()
 
-	// Start profiling
-	f, _ := os.Create("profile.prof")
+// 	// Start profiling
+// 	f, _ := os.Create("profile.prof")
 
-	startTime := time.Now()
+// 	startTime := time.Now()
 
-	pprof.StartCPUProfile(f)
-	df, err := dataframe.ReadCSVStandalone("data/output.txt", dataframe.Options{
-		"delimiter": ';',
-		// "trimleadingspace": true,
-	})
-	if err != nil {
-		fmt.Println(err)
-	}
-	pprof.StopCPUProfile()
+// 	pprof.StartCPUProfile(f)
+// 	df, err := dataframe.ReadCSVStandalone("data/output.txt", dataframe.OptionsStandard{
+// 		"delimiter": ';',
+// 		// "trimleadingspace": true,
+// 	})
+// 	if err != nil {
+// 		fmt.Println(err)
+// 	}
+// 	pprof.StopCPUProfile()
 
-	df.PrintTable()
+// 	df.PrintTable()
 
-	elapsedTime := time.Since(startTime)
-	fmt.Println("Elapsed time:", elapsedTime)
+// 	elapsedTime := time.Since(startTime)
+// 	fmt.Println("Elapsed time:", elapsedTime)
 
-	// time.Sleep(1000 * time.Second)
+// 	// time.Sleep(1000 * time.Second)
 
-}
+// }
