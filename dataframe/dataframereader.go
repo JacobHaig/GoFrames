@@ -3,55 +3,28 @@ package dataframe
 import (
 	"bufio"
 	"encoding/csv"
-	"errors"
 	"fmt"
 	"io"
 	"os"
+
+	// "github.com/pkg/errors"
+
+	"github.com/joomcode/errorx"
 )
-
-type OptionsRaw struct {
-	delimiter        string
-	trimleadingspace bool
-	header           bool
-}
-
-type OptionsStandard struct {
-	delimiter        rune
-	trimleadingspace bool
-	header           bool
-}
-
-func (options OptionsRaw) standardizeOptions() (*OptionsStandard, error) {
-	if len(options.delimiter) > 1 {
-		return nil, errors.New("error: delimiter must be a single character")
-	}
-
-	optionNew := &OptionsStandard{
-		delimiter:        rune(options.delimiter[0]),
-		trimleadingspace: options.trimleadingspace,
-		header:           options.header,
-	}
-
-	// Report any errors to Prevent incompatible options
-	if optionNew.trimleadingspace && (optionNew.delimiter == ' ' || optionNew.delimiter == '\t') {
-		return nil, errors.New("error: trimleadingspace is true, but the delimiter is a space or tab. these are incompatible options")
-	}
-
-	return optionNew, nil
-}
 
 type DataFrameReader struct {
 	fileType string
 	filePath string
-	options  *OptionsRaw
+	options  *Options
 }
 
 func Read() *DataFrameReader {
 	return &DataFrameReader{
-		options: &OptionsRaw{
-			delimiter:        ",",
+		options: &Options{
+			delimiter:        ',',
 			trimleadingspace: false,
 			header:           false,
+			inferdatatypes:   false,
 		},
 	}
 }
@@ -69,15 +42,13 @@ func (dfr *DataFrameReader) FilePath(filePath string) *DataFrameReader {
 func (dfr *DataFrameReader) Option(key string, value any) *DataFrameReader {
 	switch key {
 	case "delimiter":
-		// If its a rune, convert it to a string
-		if _, ok := value.(rune); ok {
-			value = string(value.(rune))
-		}
-		dfr.options.delimiter = value.(string)
+		dfr.options.delimiter = value.(rune)
 	case "trimleadingspace":
 		dfr.options.trimleadingspace = value.(bool)
 	case "header":
 		dfr.options.header = value.(bool)
+	case "inferdatatypes":
+		dfr.options.inferdatatypes = value.(bool)
 	}
 	return dfr
 }
@@ -91,18 +62,17 @@ func (dfr *DataFrameReader) Load() (*DataFrame, error) {
 
 	switch dfr.fileType {
 	case "csv":
-		df, err := ReadCSV2(dfr.filePath, optionsStandard)
+		df, err := csvReader(dfr.filePath, optionsStandard)
 		if err != nil {
 			return &DataFrame{}, err
 		}
 		return df, nil
 	}
 
-	return &DataFrame{}, errors.New("FileType not supported")
+	return &DataFrame{}, errorx.IllegalState.New("File type not supported")
 }
 
-func ReadCSV2(path string, options *OptionsStandard) (*DataFrame, error) {
-
+func csvReader(path string, options *Options) (*DataFrame, error) {
 	// Read the file
 	file, err := os.Open(path)
 	if err != nil {

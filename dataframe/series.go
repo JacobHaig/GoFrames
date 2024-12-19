@@ -10,15 +10,39 @@ import (
 
 type Series struct {
 	Name   string
-	Values []any
+	Values []any // Slice of Anys
 	Type   reflect.Type
 }
 
 type Series2 struct {
 	Name   string
-	Values any // Contains a slice of strings, ints, floats, etc.
+	Values any // Any that contains a typed slice
 	Type   reflect.Type
 }
+
+// // Interface for Series types (Series of ints, floats, strings, etc.)
+// type SeriesInterface interface {
+// 	// Rename the Series.
+// 	Rename(newName string) *Series
+
+// 	// Infer the type of the Series.
+// 	InferType() reflect.Type
+
+// 	// Get the value at the specified index.
+// 	Get(index int) any
+
+// 	// Copy the Series.
+// 	Copy(deep bool) *Series
+
+// 	// Drop a row from the Series.
+// 	DropRow(index int) *Series
+
+// 	// Drop rows from the Series.
+// 	DropRows(indexes ...int) *Series
+
+// 	// Get the length of the Series.
+// 	Len() int
+// }
 
 // NewSeries returns a new Series.
 //

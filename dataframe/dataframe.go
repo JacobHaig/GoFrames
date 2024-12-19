@@ -207,7 +207,7 @@ func (df *DataFrame) GetColumnNames(selectedColumns ...any) ([]string, error) {
 //
 // Options:
 //   - copy: bool (default: false) If true, the function will return a copy of the Series.
-func (df *DataFrame) GetSeries(columnName string, options ...Options) *Series {
+func (df *DataFrame) GetSeries(columnName string, options ...OptionsMap) *Series {
 	optionsClean := standardizeOptions(options...)
 	copy := optionsClean.getOption("copy", false).(bool)
 

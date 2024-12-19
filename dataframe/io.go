@@ -12,7 +12,7 @@ import (
 	"github.com/xitongsys/parquet-go/reader"
 )
 
-func ReadCSVtoRows(path string, options ...Options) ([][]string, error) {
+func ReadCSVtoRows(path string, options ...OptionsMap) ([][]string, error) {
 	// Standardize the keys
 	optionsClean := standardizeOptions(options...)
 	delimiter := optionsClean.getOption("delimiter", ',').(rune)
@@ -63,7 +63,7 @@ func ReadCSVtoRows(path string, options ...Options) ([][]string, error) {
 	return rows, nil
 }
 
-func ReadCSVtoColumns(path string, options ...Options) ([][]string, error) {
+func ReadCSVtoColumns(path string, options ...OptionsMap) ([][]string, error) {
 	// Standardize the keys
 	optionsClean := standardizeOptions(options...)
 	delimiter := optionsClean.getOption("delimiter", ',').(rune)
@@ -120,7 +120,7 @@ func ReadCSVtoColumns(path string, options ...Options) ([][]string, error) {
 	return columns, nil
 }
 
-func ReadParquet(filename string, options ...Options) (*DataFrame, error) {
+func ReadParquet(filename string, options ...OptionsMap) (*DataFrame, error) {
 	// optionsClean := standardizeOptions(options...)
 
 	fr, err := local.NewLocalFileReader(filename)
@@ -163,7 +163,7 @@ func ReadParquet(filename string, options ...Options) (*DataFrame, error) {
 	return df, nil
 }
 
-func NewFromRows(rows [][]string, options ...Options) *DataFrame {
+func NewFromRows(rows [][]string, options ...OptionsMap) *DataFrame {
 	optionsClean := standardizeOptions(options...)
 	headerOption := optionsClean.getOption("header", false).(bool)
 
@@ -196,7 +196,7 @@ func NewFromRows(rows [][]string, options ...Options) *DataFrame {
 	return &DataFrame{series}
 }
 
-func NewFromColumns(columns [][]string, options ...Options) *DataFrame {
+func NewFromColumns(columns [][]string, options ...OptionsMap) *DataFrame {
 	optionsClean := standardizeOptions(options...)
 	headerOption := optionsClean.getOption("header", false).(bool)
 
@@ -232,7 +232,7 @@ func NewFromColumns(columns [][]string, options ...Options) *DataFrame {
 	return &DataFrame{series}
 }
 
-func (df *DataFrame) PrintTable(options ...Options) {
+func (df *DataFrame) PrintTable(options ...OptionsMap) {
 	optionsClean := standardizeOptions(options...)
 	displayRows := optionsClean.getOption("display_rows", 10).(int)
 

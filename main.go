@@ -3,55 +3,110 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	_ "net/http/pprof"
 
 	"teddy/dataframe"
 )
 
+func memUsage(m1, m2 *runtime.MemStats) {
+
+	var p = fmt.Println
+	p("Alloc:", (m2.Alloc-m1.Alloc)/1024/1024,
+		"TotalAlloc:", (m2.TotalAlloc-m1.TotalAlloc)/1024/1024,
+		"HeapAlloc:", (m2.HeapAlloc-m1.HeapAlloc)/1024/1024)
+}
+
 func main() {
+	var m1, m2 runtime.MemStats
+	runtime.ReadMemStats(&m1)
 
 	df, err := dataframe.
 		Read().
-		FileType("csv").
-		FilePath("data/addresses.csv").
-		Option("delimiter", ',').
-		Option("trimleadingspace", true).
-		Option("header", true).
+		// FileType("csv").
+		FilePath("data/1millionrows.csv").
+		Option("delimiter", ';').
 		Load()
 
 	if err != nil {
-		fmt.Println(err)
+
+		// fmt.Println(err)
+		// fmt.Printf("%+v\n", err)
+		// fmt.Println(eris.ToString(err, true))
+
+		// utils.PrintError(err)
+		// dataframe.Read2()
+
+		dataframe.PrintTrace(err)
+
 		os.Exit(1)
 	}
 
-	df.PrintTable()
-
-	df = df.
-		Select("First Name", "Last Name").
-		ApplyIndex("Full Name", func(a ...any) any {
-			return a[0].(string) + " " + a[1].(string)
-		}, "First Name", "Last Name").
-		FilterMap(func(m map[string]any) bool {
-			return m["First Name"].(string) != "Jack"
-		}).
-		DropColumn("Last Name")
+	// time.Sleep(5 * time.Second)
 
 	df.PrintTable()
+	runtime.ReadMemStats(&m2)
+	memUsage(&m1, &m2)
 
 	err = df.
 		Write().
 		FileType("csv").
 		FilePath("data/output.csv").
-		Option("delimiter", ';').
-		Option("trimleadingspace", true).
-		Option("header", true).
+		Option("delimiter", ',').
+		// Option("trimleadingspace", true).
+		// Option("header", true).
 		Save()
 
 	if err != nil {
 		fmt.Println(err)
 	}
 }
+
+// func main() {
+
+// 	df, err := dataframe.
+// 		Read().
+// 		FileType("csv").
+// 		FilePath("data/addresses.csv").
+// 		Option("delimiter", ',').
+// 		Option("trimleadingspace", true).
+// 		Option("header", true).
+// 		Option("inferdatatypes", true).
+// 		Load()
+
+// 	if err != nil {
+// 		fmt.Println(err)
+// 		os.Exit(1)
+// 	}
+
+// 	df.PrintTable()
+
+// 	df = df.
+// 		Select("First Name", "Last Name").
+// 		ApplyIndex("Full Name", func(a ...any) any {
+// 			return a[0].(string) + " " + a[1].(string)
+// 		}, "First Name", "Last Name").
+// 		FilterMap(func(m map[string]any) bool {
+// 			return m["First Name"].(string) != "Jack"
+// 		}).
+// 		DropColumn("Last Name")
+
+// 	df.PrintTable()
+
+// 	err = df.
+// 		Write().
+// 		FileType("csv").
+// 		FilePath("data/output.csv").
+// 		Option("delimiter", ';').
+// 		Option("trimleadingspace", true).
+// 		Option("header", true).
+// 		Save()
+
+// 	if err != nil {
+// 		fmt.Println(err)
+// 	}
+// }
 
 // func main() {
 // 	df, err := dataframe.ReadCSV("data/addresses.csv",

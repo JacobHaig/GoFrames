@@ -7,11 +7,11 @@ import (
 	"strings"
 )
 
-type Options map[string]any
+type OptionsMap map[string]any
 
-func standardizeOptions(options ...Options) Options {
+func standardizeOptions(options ...OptionsMap) OptionsMap {
 	if len(options) == 0 {
-		return Options{}
+		return OptionsMap{}
 	}
 	// Lowercase all keys
 	for k, v := range options[0] {
@@ -21,7 +21,7 @@ func standardizeOptions(options ...Options) Options {
 	return options[0]
 }
 
-func (options Options) getOption(key string, defaultValue any) any {
+func (options OptionsMap) getOption(key string, defaultValue any) any {
 	if val, ok := options[key]; ok {
 		return val
 	}
@@ -143,4 +143,20 @@ func allTrue(values []bool) bool {
 		}
 	}
 	return true
+}
+
+func PrintTrace(err error) {
+
+	// format := eris.NewDefaultStringFormat(eris.FormatOptions{
+	// 	InvertOutput: true, // flag that inverts the error output (wrap errors shown first)
+	// 	WithTrace:    true, // flag that enables stack trace output
+	// 	InvertTrace:  true, // flag that inverts the stack trace output (top of call stack shown first)
+	// })
+
+	// format.StackElemSep = ":"
+
+	// fmt.Println(eris.ToCustomString(err, format))
+
+	fmt.Printf("Error: %+v\n", err)
+
 }

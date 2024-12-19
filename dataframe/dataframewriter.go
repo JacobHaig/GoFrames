@@ -6,48 +6,21 @@ import (
 	"os"
 )
 
-type WriterOptionsRaw struct {
-	delimiter        string
-	trimleadingspace bool
-	header           bool
-}
-
-func (wo *WriterOptionsRaw) standardizeOptions() (*WriterOptionsStandard, error) {
-
-	optionNew := &WriterOptionsStandard{
-		delimiter:        rune(wo.delimiter[0]),
-		trimleadingspace: wo.trimleadingspace,
-		header:           wo.header,
-	}
-
-	// Report any errors to Prevent incompatible options
-	if optionNew.trimleadingspace && (optionNew.delimiter == ' ' || optionNew.delimiter == '\t') {
-		return nil, errors.New("error: trimleadingspace is true, but the delimiter is a space or tab. These are incompatible options")
-	}
-
-	return optionNew, nil
-}
-
-type WriterOptionsStandard struct {
-	delimiter        rune
-	trimleadingspace bool
-	header           bool
-}
-
 type DataFrameWriter struct {
 	df       *DataFrame
 	fileType string
 	filePath string
-	options  *WriterOptionsRaw
+	options  *Options
 }
 
 func (df *DataFrame) Write() *DataFrameWriter {
 	return &DataFrameWriter{
 		df: df,
-		options: &WriterOptionsRaw{
-			delimiter:        ",",
+		options: &Options{
+			delimiter:        ',',
 			trimleadingspace: false,
 			header:           false,
+			inferdatatypes:   false,
 		},
 	}
 }
@@ -65,10 +38,7 @@ func (dfw *DataFrameWriter) FilePath(filePath string) *DataFrameWriter {
 func (dfw *DataFrameWriter) Option(key string, value any) *DataFrameWriter {
 	switch key {
 	case "delimiter":
-		if _, ok := value.(rune); ok {
-			value = string(value.(rune))
-		}
-		dfw.options.delimiter = value.(string)
+		dfw.options.delimiter = value.(rune)
 	case "trimleadingspace":
 		dfw.options.trimleadingspace = value.(bool)
 	case "header":
@@ -85,7 +55,7 @@ func (dfw *DataFrameWriter) Save() error {
 
 	switch dfw.fileType {
 	case "csv":
-		err := WriteCSV2(dfw.df, dfw.filePath, optionsStandard)
+		err := WriteCSV(dfw.df, dfw.filePath, optionsStandard)
 		if err != nil {
 			return err
 		}
@@ -95,7 +65,7 @@ func (dfw *DataFrameWriter) Save() error {
 	return errors.New("FileType not supported")
 }
 
-func WriteCSV2(df *DataFrame, path string, options *WriterOptionsStandard) error {
+func WriteCSV(df *DataFrame, path string, options *Options) error {
 
 	header := []string{}
 	if options.header {
