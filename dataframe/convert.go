@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/rotisserie/eris"
 )
 
 // This file is used to do type conversions on a series.
@@ -33,13 +35,13 @@ func convertValue(value any, newType string) (any, error) {
 	case "int":
 		i, err := convertToInt(value)
 		if err != nil {
-			return nil, err
+			return nil, eris.Wrapf(err, "Error converting value to type %s", newType)
 		}
 		return i, nil
 	case "float":
 		f, err := convertToFloat(value)
 		if err != nil {
-			return nil, err
+			return nil, eris.Wrapf(err, "Error converting value to type %s", newType)
 		}
 		return f, nil
 	case "string":
@@ -66,7 +68,7 @@ func convertToInt(value any) (int, error) {
 		return convertStringToInt(v)
 	}
 	errorMessage := fmt.Sprintf("error: could not convert value of type %T to int. The Value is %v", value, value)
-	return 0, errors.New(errorMessage)
+	return 0, eris.New(errorMessage)
 }
 
 func convertStringToInt(value string) (int, error) {
@@ -77,7 +79,7 @@ func convertStringToInt(value string) (int, error) {
 		value = strings.Replace(value, ",", "", -1)
 		i, err = strconv.Atoi(value)
 		if err != nil {
-			return 0, err
+			return 0, eris.Wrapf(err, "Error converting string '%s' to int", value)
 		}
 	}
 	return i, nil
@@ -93,7 +95,7 @@ func convertToFloat(value any) (float64, error) {
 		return convertStringToFloat(v)
 	}
 	errorMessage := fmt.Sprintf("error: could not convert value of type %T to float. The Value is %v", value, value)
-	return 0, errors.New(errorMessage)
+	return 0, eris.New(errorMessage)
 }
 
 func convertStringToFloat(value string) (float64, error) {

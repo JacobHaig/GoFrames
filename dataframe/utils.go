@@ -4,7 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
+
+	"github.com/rotisserie/eris"
 )
 
 type OptionsMap map[string]any
@@ -59,19 +62,19 @@ func flattenInterface[T any](acc []T, arr any) ([]T, error) {
 		for _, elem := range v {
 			acc, err = flattenInterface(acc, elem)
 			if err != nil {
-				return nil, err
+				return nil, eris.Wrap(err, "Error flattening interface")
 			}
 		}
 	case [][]any:
 		for _, elem := range v {
 			acc, err = flattenInterface(acc, elem)
 			if err != nil {
-				return nil, err
+				return nil, eris.Wrap(err, "Error flattening interface")
 			}
 		}
 		return acc, nil
 	default:
-		return nil, errors.New("Could not flatten array of type " + fmt.Sprintf("%T", arr))
+		return nil, eris.Wrap(errors.New("Could not flatten array of type "+fmt.Sprintf("%T", arr)), "Error flattening interface")
 	}
 
 	return acc, nil
@@ -146,17 +149,42 @@ func allTrue(values []bool) bool {
 }
 
 func PrintTrace(err error) {
-
 	// format := eris.NewDefaultStringFormat(eris.FormatOptions{
 	// 	InvertOutput: true, // flag that inverts the error output (wrap errors shown first)
 	// 	WithTrace:    true, // flag that enables stack trace output
 	// 	InvertTrace:  true, // flag that inverts the stack trace output (top of call stack shown first)
+	// 	WithExternal: true,
 	// })
-
-	// format.StackElemSep = ":"
-
 	// fmt.Println(eris.ToCustomString(err, format))
 
-	fmt.Printf("Error: %+v\n", err)
+	upErr := eris.Unpack(err)
 
+	var str string
+	if upErr.ErrExternal != nil {
+		str += fmt.Sprintf("%+v", upErr.ErrExternal) + "\n"
+	}
+	str += fmt.Sprintf("%+v", upErr.ErrRoot.Msg) + "\n"
+
+	for _, frame := range upErr.ErrRoot.Stack {
+		str += frame.Name + "\n"
+		str += "\t" + removeParentFolder(frame.File) + ":" + strconv.Itoa(frame.Line) + "\n"
+	}
+
+	str += "\n"
+
+	for _, eLink := range upErr.ErrChain {
+		str += eLink.Msg + "\n"
+		str += eLink.Frame.Name + "\n"
+		str += "\t" + removeParentFolder(eLink.Frame.File) + ":" + strconv.Itoa(eLink.Frame.Line) + "\n"
+	}
+
+	fmt.Println(str)
+}
+
+// Function that removes the parent path from the file path
+func removeParentFolder(parentfolder string) string {
+	SplitLabel := "GoFrames" // Change this to the parent directory name
+	SplitPath := strings.Split(parentfolder, SplitLabel)
+
+	return SplitPath[1]
 }

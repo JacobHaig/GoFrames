@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/rotisserie/eris"
 	"github.com/xitongsys/parquet-go-source/local"
 	"github.com/xitongsys/parquet-go/reader"
 )
@@ -22,9 +23,7 @@ func ReadCSVtoRows(path string, options ...OptionsMap) ([][]string, error) {
 	// Read the file
 	file, err := os.Open(path)
 	if err != nil {
-		fmt.Println("Error reading file:", path)
-		fmt.Println(err)
-		return nil, err
+		return nil, eris.Wrapf(err, "Error reading file: %s", path)
 	}
 
 	// Create a CSV Reader
@@ -49,11 +48,9 @@ func ReadCSVtoRows(path string, options ...OptionsMap) ([][]string, error) {
 	if err != nil {
 		// ParseError
 		if _, ok := err.(*csv.ParseError); ok {
-			fmt.Println("Error: CSV file has parse error")
-			fmt.Println("This occurred while parsing the following file:", path)
+			return nil, eris.Wrapf(err, "Error parsing CSV file: %s", path)
 		}
-		fmt.Println(err)
-		return nil, err
+		return nil, eris.Wrapf(err, "Error reading CSV file: %s", path)
 	}
 
 	if rows == nil {
@@ -87,7 +84,7 @@ func ReadCSVtoColumns(path string, options ...OptionsMap) ([][]string, error) {
 
 	// Prevent incompatible options
 	if csvReader.TrimLeadingSpace && (csvReader.Comma == ' ' || csvReader.Comma == '\t') {
-		return nil, errors.New("error: trimleadingspace is true, but the delimiter is a space or tab. these are incompatible options")
+		return nil, eris.New("error: trimleadingspace is true, but the delimiter is a space or tab. these are incompatible options")
 	}
 
 	if debug {
@@ -112,8 +109,7 @@ func ReadCSVtoColumns(path string, options ...OptionsMap) ([][]string, error) {
 		}
 
 		if err != nil {
-			fmt.Println(err)
-			return nil, err
+			return nil, eris.Wrap(err, "Error reading CSV file")
 		}
 	}
 
@@ -125,12 +121,12 @@ func ReadParquet(filename string, options ...OptionsMap) (*DataFrame, error) {
 
 	fr, err := local.NewLocalFileReader(filename)
 	if err != nil {
-		return nil, err
+		return nil, eris.Wrapf(err, "Error reading parquet file: %s", filename)
 	}
 
 	pr, err := reader.NewParquetColumnReader(fr, 4)
 	if err != nil {
-		return nil, err
+		return nil, eris.Wrap(err, "Error creating parquet column reader")
 	}
 	// println(rowCounts)
 
@@ -142,7 +138,7 @@ func ReadParquet(filename string, options ...OptionsMap) (*DataFrame, error) {
 	for i := range colCount {
 		values, _, _, err := pr.ReadColumnByIndex(int64(i), rowCount)
 		if err != nil {
-			return nil, err
+			return nil, eris.Wrapf(err, "Error reading column %d", i)
 		}
 
 		// fmt.Println(values)

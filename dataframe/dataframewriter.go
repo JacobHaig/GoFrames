@@ -2,8 +2,9 @@ package dataframe
 
 import (
 	"encoding/csv"
-	"errors"
 	"os"
+
+	"github.com/rotisserie/eris"
 )
 
 type DataFrameWriter struct {
@@ -50,19 +51,19 @@ func (dfw *DataFrameWriter) Option(key string, value any) *DataFrameWriter {
 func (dfw *DataFrameWriter) Save() error {
 	optionsStandard, err := dfw.options.standardizeOptions()
 	if err != nil {
-		return err
+		return eris.Wrap(err, "Error standardizing options")
 	}
 
 	switch dfw.fileType {
 	case "csv":
 		err := WriteCSV(dfw.df, dfw.filePath, optionsStandard)
 		if err != nil {
-			return err
+			return eris.Wrap(err, "Error writing csv")
 		}
 		return nil
 	}
 
-	return errors.New("FileType not supported")
+	return eris.New("Unknown file type")
 }
 
 func WriteCSV(df *DataFrame, path string, options *Options) error {
@@ -94,7 +95,7 @@ func WriteCSV(df *DataFrame, path string, options *Options) error {
 	// Create the file
 	file, err := os.Create(path)
 	if err != nil {
-		return err
+		return eris.Wrap(err, "Error creating file")
 	}
 	defer file.Close()
 
@@ -104,7 +105,7 @@ func WriteCSV(df *DataFrame, path string, options *Options) error {
 	// Write to the csv file
 	err1 := csvWriter.WriteAll(columns)
 	if err1 != nil {
-		return err1
+		return eris.Wrap(err1, "Error writing to file")
 	}
 
 	return nil

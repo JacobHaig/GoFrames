@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strconv"
 	"time"
+
+	"github.com/rotisserie/eris"
 )
 
 type Series struct {
@@ -90,7 +92,7 @@ func (s *Series) AsType(valueType string) *Series {
 		// fmt.Printf("Underlying Type: %T\n", value)
 
 		if err != nil {
-			fmt.Println(err)
+			eris.Wrapf(err, "Error converting value to type %s", valueType)
 			return nil
 		}
 

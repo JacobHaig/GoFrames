@@ -1,9 +1,10 @@
 package dataframe
 
 import (
-	"errors"
 	"fmt"
 	"slices"
+
+	"github.com/rotisserie/eris"
 )
 
 type DataFrame struct {
@@ -181,7 +182,7 @@ func (df *DataFrame) GetColumnNames(selectedColumns ...any) ([]string, error) {
 			return columnNames, nil
 		} else {
 			columns := df.findColumnsThatDontExist(columnNames)
-			return nil, errors.New("One of these columns do not exist: " + SprintfStringSlice(columns))
+			return nil, eris.New("One of these columns do not exist: " + SprintfStringSlice(columns))
 		}
 
 	case []int, int:
@@ -190,7 +191,7 @@ func (df *DataFrame) GetColumnNames(selectedColumns ...any) ([]string, error) {
 		columnNames := []string{}
 		for _, index := range columnIndexes {
 			if index < 0 || index >= len(df.series) {
-				return nil, errors.New("Index out of range: " + fmt.Sprint(index))
+				return nil, eris.New("Index out of range: " + fmt.Sprint(index))
 			}
 			columnNames = append(columnNames, df.series[index].Name)
 		}

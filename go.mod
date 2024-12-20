@@ -9,6 +9,7 @@ require (
 )
 
 require (
+	github.com/go-errors/errors v1.5.1 // indirect
 	github.com/joomcode/errorx v1.2.0 // indirect
 	github.com/rotisserie/eris v0.5.4 // indirect
 )

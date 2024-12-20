@@ -8,6 +8,7 @@ import (
 	_ "net/http/pprof"
 
 	"teddy/dataframe"
+	// "github.com/go-errors/errors"
 )
 
 func memUsage(m1, m2 *runtime.MemStats) {
@@ -24,22 +25,13 @@ func main() {
 
 	df, err := dataframe.
 		Read().
-		// FileType("csv").
-		FilePath("data/1millionrows.csv").
+		FileType("csv").
+		FilePath("data/1millionrows1.csv").
 		Option("delimiter", ';').
 		Load()
 
 	if err != nil {
-
-		// fmt.Println(err)
-		// fmt.Printf("%+v\n", err)
-		// fmt.Println(eris.ToString(err, true))
-
-		// utils.PrintError(err)
-		// dataframe.Read2()
-
 		dataframe.PrintTrace(err)
-
 		os.Exit(1)
 	}
 
@@ -49,7 +41,7 @@ func main() {
 	runtime.ReadMemStats(&m2)
 	memUsage(&m1, &m2)
 
-	err = df.
+	err2 := df.
 		Write().
 		FileType("csv").
 		FilePath("data/output.csv").
@@ -58,8 +50,9 @@ func main() {
 		// Option("header", true).
 		Save()
 
-	if err != nil {
-		fmt.Println(err)
+	if err2 != nil {
+		dataframe.PrintTrace(err2)
+		os.Exit(1)
 	}
 }
 

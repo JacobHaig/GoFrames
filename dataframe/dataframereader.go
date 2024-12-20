@@ -7,9 +7,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/rotisserie/eris"
 	// "github.com/pkg/errors"
-
-	"github.com/joomcode/errorx"
 )
 
 type DataFrameReader struct {
@@ -57,26 +56,29 @@ func (dfr *DataFrameReader) Load() (*DataFrame, error) {
 
 	optionsStandard, err := dfr.options.standardizeOptions()
 	if err != nil {
-		return nil, err
+		return nil, eris.Wrap(err, "Error standardizing options")
 	}
 
 	switch dfr.fileType {
 	case "csv":
 		df, err := csvReader(dfr.filePath, optionsStandard)
 		if err != nil {
-			return &DataFrame{}, err
+			return &DataFrame{}, eris.Wrap(err, "Error reading CSV file")
 		}
 		return df, nil
 	}
 
-	return &DataFrame{}, errorx.IllegalState.New("File type not supported")
+	return &DataFrame{}, eris.New("Unknown file type")
+	// return &DataFrame{}, errors.New("Unknown file type")
+	// return &DataFrame{}, eris.Wrap(errors.New("Unknown file type"), "Unknown file type2")
+
 }
 
 func csvReader(path string, options *Options) (*DataFrame, error) {
 	// Read the file
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, eris.Wrap(err, "Error opening file")
 	}
 
 	// Create a CSV Reader
@@ -102,8 +104,7 @@ func csvReader(path string, options *Options) (*DataFrame, error) {
 		}
 
 		if err != nil {
-			fmt.Println(err)
-			return nil, err
+			return nil, eris.Wrap(err, "CSV read error")
 		}
 	}
 
