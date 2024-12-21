@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strconv"
+	"os"
 	"strings"
 
 	"github.com/rotisserie/eris"
@@ -160,31 +160,45 @@ func PrintTrace(err error) {
 	upErr := eris.Unpack(err)
 
 	var str string
-	if upErr.ErrExternal != nil {
-		str += fmt.Sprintf("%+v", upErr.ErrExternal) + "\n"
+
+	invert := false
+
+	if invert {
+		if upErr.ErrExternal != nil {
+			str += fmt.Sprintf("%+v\n", upErr.ErrExternal)
+		}
+		str += fmt.Sprintf("%+v\n", upErr.ErrRoot.Msg)
+		for _, frame := range upErr.ErrRoot.Stack {
+			str += fmt.Sprintf("%s -> %s:%d\n", frame.Name, removeParentFolder(frame.File), frame.Line)
+		}
+	} else {
+		for i := len(upErr.ErrRoot.Stack) - 1; i >= 0; i-- {
+			frame := upErr.ErrRoot.Stack[i]
+			str += fmt.Sprintf("%s -> %s:%d\n", frame.Name, removeParentFolder(frame.File), frame.Line)
+		}
+		str += fmt.Sprintf("%+v\n", upErr.ErrRoot.Msg)
+		if upErr.ErrExternal != nil {
+			str += fmt.Sprintf("%+v\n", upErr.ErrExternal)
+		}
 	}
-	str += fmt.Sprintf("%+v", upErr.ErrRoot.Msg) + "\n"
 
-	for _, frame := range upErr.ErrRoot.Stack {
-		str += frame.Name + "\n"
-		str += "\t" + removeParentFolder(frame.File) + ":" + strconv.Itoa(frame.Line) + "\n"
+	// str += "\n"
+	// for _, eLink := range upErr.ErrChain {
+	// 	str += fmt.Sprintf("%s\n", eLink.Msg)
+	// 	str += fmt.Sprintf("%s\n", eLink.Frame.Name)
+	// 	str += fmt.Sprintf("\t%s:%d\n\n", removeParentFolder(eLink.Frame.File), eLink.Frame.Line)
+	// }
+
+	if err != nil {
+		fmt.Print(str)
+		os.Exit(1)
 	}
-
-	str += "\n"
-
-	for _, eLink := range upErr.ErrChain {
-		str += eLink.Msg + "\n"
-		str += eLink.Frame.Name + "\n"
-		str += "\t" + removeParentFolder(eLink.Frame.File) + ":" + strconv.Itoa(eLink.Frame.Line) + "\n"
-	}
-
-	fmt.Println(str)
 }
 
 // Function that removes the parent path from the file path
 func removeParentFolder(parentfolder string) string {
 	SplitLabel := "GoFrames" // Change this to the parent directory name
-	SplitPath := strings.Split(parentfolder, SplitLabel)
+	SplitPath := strings.Split(parentfolder, SplitLabel+"/")
 
 	return SplitPath[1]
 }

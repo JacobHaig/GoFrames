@@ -26,7 +26,7 @@ func main() {
 	df, err := dataframe.
 		Read().
 		FileType("csv").
-		FilePath("data/1millionrows1.csv").
+		FilePath("data/1millionrows.csv").
 		Option("delimiter", ';').
 		Load()
 
@@ -37,23 +37,25 @@ func main() {
 
 	// time.Sleep(5 * time.Second)
 
-	df.PrintTable()
+	// df.PrintTable()
 	runtime.ReadMemStats(&m2)
 	memUsage(&m1, &m2)
 
-	err2 := df.
-		Write().
-		FileType("csv").
-		FilePath("data/output.csv").
-		Option("delimiter", ',').
-		// Option("trimleadingspace", true).
-		// Option("header", true).
-		Save()
+	_ = df
 
-	if err2 != nil {
-		dataframe.PrintTrace(err2)
-		os.Exit(1)
-	}
+	// err2 := df.
+	// 	Write().
+	// 	FileType("csv").
+	// 	FilePath("data/output.csv").
+	// 	Option("delimiter", ',').
+	// 	// Option("trimleadingspace", true).
+	// 	// Option("header", true).
+	// 	Save()
+
+	// if err2 != nil {
+	// 	dataframe.PrintTrace(err2)
+	// 	os.Exit(1)
+	// }
 }
 
 // func main() {
