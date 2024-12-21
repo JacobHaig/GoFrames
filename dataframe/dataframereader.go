@@ -6,15 +6,17 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/rotisserie/eris"
 	// "github.com/pkg/errors"
 )
 
 type DataFrameReader struct {
-	fileType string
-	filePath string
-	options  *Options
+	fileType    string
+	filePath    string
+	stringValue string
+	options     *Options
 }
 
 func Read() *DataFrameReader {
@@ -38,6 +40,11 @@ func (dfr *DataFrameReader) FilePath(filePath string) *DataFrameReader {
 	return dfr
 }
 
+func (dfr *DataFrameReader) FromString(value string) *DataFrameReader {
+	dfr.stringValue = value
+	return dfr
+}
+
 func (dfr *DataFrameReader) Option(key string, value any) *DataFrameReader {
 	switch key {
 	case "delimiter":
@@ -57,6 +64,14 @@ func (dfr *DataFrameReader) Load() (*DataFrame, error) {
 	optionsStandard, err := dfr.options.standardizeOptions()
 	if err != nil {
 		return nil, eris.Wrap(err, "Error standardizing options")
+	}
+
+	if dfr.stringValue != "" {
+		df, err := csvString(dfr.stringValue, optionsStandard)
+		if err != nil {
+			return &DataFrame{}, eris.Wrap(err, "Error reading CSV string")
+		}
+		return df, nil
 	}
 
 	switch dfr.fileType {
@@ -83,6 +98,62 @@ func csvReader(path string, options *Options) (*DataFrame, error) {
 
 	// Create a CSV Reader
 	buf := bufio.NewReader(file)
+	csvReader := csv.NewReader(buf)
+
+	csvReader.Comma = options.delimiter
+	csvReader.TrimLeadingSpace = options.trimleadingspace
+
+	columns := [][]any{}
+	// Read the CSV
+	for {
+		row, err := csvReader.Read()
+		if err == io.EOF {
+			break
+		}
+
+		for index, item := range row {
+			if len(columns) <= index {
+				columns = append(columns, []any{})
+			}
+			columns[index] = append(columns[index], item)
+		}
+
+		if err != nil {
+			return nil, eris.Wrap(err, "CSV read error")
+		}
+	}
+
+	// Prefill header with default values
+	header := []string{}
+	for index := range len(columns) {
+		header = append(header, fmt.Sprintf("Column %d", index))
+	}
+
+	// Check if header is present
+	if options.header {
+		for index, column := range columns {
+			if len(column) > 0 {
+				header[index] = column[0].(string)
+				columns[index] = column[1:]
+			}
+		}
+	}
+
+	// Create the Series
+	series := []*Series{}
+
+	for index, column := range columns {
+		newSeries := NewSeries(header[index], column)
+		series = append(series, newSeries)
+	}
+
+	return &DataFrame{series}, nil
+}
+
+func csvString(value string, options *Options) (*DataFrame, error) {
+
+	// Create a CSV Reader
+	buf := strings.NewReader(value)
 	csvReader := csv.NewReader(buf)
 
 	csvReader.Comma = options.delimiter

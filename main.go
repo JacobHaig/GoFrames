@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 	"runtime"
@@ -10,6 +11,9 @@ import (
 	"teddy/dataframe"
 	// "github.com/go-errors/errors"
 )
+
+//go:embed data/1millionrows.csv
+var content string
 
 func memUsage(m1, m2 *runtime.MemStats) {
 
@@ -25,8 +29,9 @@ func main() {
 
 	df, err := dataframe.
 		Read().
-		FileType("csv").
-		FilePath("data/1millionrows.csv").
+		// FileType("csv").
+		// FilePath("data/1millionrows.csv").
+		FromString(content).
 		Option("delimiter", ';').
 		Load()
 
