@@ -50,10 +50,8 @@ func allSameType(values []any) bool {
 // FlattenInterface flattens a slice of slices of interfaces into a single slice of T
 // This can flatten [][]any into []T or []any into []T
 func flattenInterface[T any](acc []T, arr any) ([]T, error) {
-
 	var err error
 	switch v := arr.(type) {
-
 	case []T:
 		acc = append(acc, v...)
 	case T:
@@ -80,7 +78,7 @@ func flattenInterface[T any](acc []T, arr any) ([]T, error) {
 	return acc, nil
 }
 
-// FlattenInterface flattens a slice of slices of interfaces into a single slice of T
+// InterfaceToTypeSlice flattens a slice of slices of interfaces into a single slice of T
 //
 // This can flatten [][]any into []T or []any into []T
 func InterfaceToTypeSlice[T any](values ...any) []T {
@@ -149,18 +147,9 @@ func allTrue(values []bool) bool {
 }
 
 func PrintTrace(err error) {
-	// format := eris.NewDefaultStringFormat(eris.FormatOptions{
-	// 	InvertOutput: true, // flag that inverts the error output (wrap errors shown first)
-	// 	WithTrace:    true, // flag that enables stack trace output
-	// 	InvertTrace:  true, // flag that inverts the stack trace output (top of call stack shown first)
-	// 	WithExternal: true,
-	// })
-	// fmt.Println(eris.ToCustomString(err, format))
-
 	upErr := eris.Unpack(err)
 
 	var str string
-
 	invert := false
 
 	if invert {
@@ -181,13 +170,6 @@ func PrintTrace(err error) {
 			str += fmt.Sprintf("%+v\n", upErr.ErrExternal)
 		}
 	}
-
-	// str += "\n"
-	// for _, eLink := range upErr.ErrChain {
-	// 	str += fmt.Sprintf("%s\n", eLink.Msg)
-	// 	str += fmt.Sprintf("%s\n", eLink.Frame.Name)
-	// 	str += fmt.Sprintf("\t%s:%d\n\n", removeParentFolder(eLink.Frame.File), eLink.Frame.Line)
-	// }
 
 	if err != nil {
 		fmt.Print(str)
