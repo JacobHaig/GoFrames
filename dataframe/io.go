@@ -104,6 +104,7 @@ func ReadParquet(filename string, options ...OptionsMap) (*DataFrame, error) {
 		// Detect type and create appropriate typed series
 		if len(values) > 0 {
 			var series SeriesInterface
+
 			switch values[0].(type) {
 			case int32, int64:
 				// Convert to []int
@@ -117,15 +118,16 @@ func ReadParquet(filename string, options ...OptionsMap) (*DataFrame, error) {
 					default:
 						// Fallback to generic if conversion fails
 						series = NewGenericSeries(colName, values)
-						break
 					}
 				}
 				if series == nil {
 					series = NewIntSeries(colName, intValues)
 				}
+
 			case float32, float64:
 				// Convert to []float64
 				floatValues := make([]float64, len(values))
+
 				for j, v := range values {
 					switch vt := v.(type) {
 					case float32:
@@ -135,12 +137,13 @@ func ReadParquet(filename string, options ...OptionsMap) (*DataFrame, error) {
 					default:
 						// Fallback to generic if conversion fails
 						series = NewGenericSeries(colName, values)
-						break
 					}
 				}
+
 				if series == nil {
 					series = NewFloat64Series(colName, floatValues)
 				}
+
 			case string:
 				// Convert to []string
 				stringValues := make([]string, len(values))
@@ -156,6 +159,7 @@ func ReadParquet(filename string, options ...OptionsMap) (*DataFrame, error) {
 				if series == nil {
 					series = NewStringSeries(colName, stringValues)
 				}
+
 			case bool:
 				// Convert to []bool
 				boolValues := make([]bool, len(values))
@@ -171,6 +175,7 @@ func ReadParquet(filename string, options ...OptionsMap) (*DataFrame, error) {
 				if series == nil {
 					series = NewBoolSeries(colName, boolValues)
 				}
+
 			default:
 				// Use generic series for unsupported or mixed types
 				series = NewGenericSeries(colName, values)
