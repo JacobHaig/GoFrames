@@ -5,14 +5,16 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"io"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/rotisserie/eris"
 	"github.com/xitongsys/parquet-go-source/local"
 	"github.com/xitongsys/parquet-go/reader"
 )
 
+// ReadCSVtoRows reads a CSV file and returns a 2D array of strings (rows)
 func ReadCSVtoRows(path string, options ...OptionsMap) ([][]string, error) {
 	// Standardize the keys
 	optionsClean := standardizeOptions(options...)
@@ -25,6 +27,7 @@ func ReadCSVtoRows(path string, options ...OptionsMap) ([][]string, error) {
 	if err != nil {
 		return nil, eris.Wrapf(err, "Error reading file: %s", path)
 	}
+	defer file.Close()
 
 	// Create a CSV Reader
 	buf := bufio.NewReader(file)
@@ -60,309 +63,419 @@ func ReadCSVtoRows(path string, options ...OptionsMap) ([][]string, error) {
 	return rows, nil
 }
 
+// ReadCSVtoColumns reads a CSV file and returns a 2D array of strings (columns)
 func ReadCSVtoColumns(path string, options ...OptionsMap) ([][]string, error) {
-	// Standardize the keys
-	optionsClean := standardizeOptions(options...)
-	delimiter := optionsClean.getOption("delimiter", ',').(rune)
-	trimLeadingSpace := optionsClean.getOption("trimleadingspace", false).(bool)
-	debug := optionsClean.getOption("debug", false).(bool)
-
-	// Read the file
-	file, err := os.Open(path)
+	// First read as rows
+	rows, err := ReadCSVtoRows(path, options...)
 	if err != nil {
-		fmt.Println("Error reading file:", path)
-		fmt.Println(err)
 		return nil, err
 	}
 
-	// Create a CSV Reader
-	buf := bufio.NewReader(file)
-	csvReader := csv.NewReader(buf)
-
-	csvReader.Comma = delimiter
-	csvReader.TrimLeadingSpace = trimLeadingSpace
-
-	// Prevent incompatible options
-	if csvReader.TrimLeadingSpace && (csvReader.Comma == ' ' || csvReader.Comma == '\t') {
-		return nil, eris.New("error: trimleadingspace is true, but the delimiter is a space or tab. these are incompatible options")
-	}
-
-	if debug {
-		fmt.Println("Delimiter:", "("+string(csvReader.Comma)+")")
-		fmt.Println("TrimLeadingSpace:", csvReader.TrimLeadingSpace)
-	}
-
-	columns := [][]string{}
-
-	// Read the CSV
-	for {
-		row, err := csvReader.Read()
-		if err == io.EOF {
-			break
-		}
-
-		for index, item := range row {
-			if len(columns) <= index {
-				columns = append(columns, []string{})
-			}
-			columns[index] = append(columns[index], item)
-		}
-
-		if err != nil {
-			return nil, eris.Wrap(err, "Error reading CSV file")
-		}
-	}
-
-	return columns, nil
+	// Then transpose to columns
+	return TransposeRows(rows), nil
 }
 
+// ReadParquet reads a Parquet file and returns a DataFrame
 func ReadParquet(filename string, options ...OptionsMap) (*DataFrame, error) {
-	// optionsClean := standardizeOptions(options...)
-
 	fr, err := local.NewLocalFileReader(filename)
 	if err != nil {
 		return nil, eris.Wrapf(err, "Error reading parquet file: %s", filename)
 	}
+	defer fr.Close()
 
 	pr, err := reader.NewParquetColumnReader(fr, 4)
 	if err != nil {
 		return nil, eris.Wrap(err, "Error creating parquet column reader")
 	}
-	// println(rowCounts)
+	defer pr.ReadStop()
 
 	rowCount := pr.GetNumRows()
 	colCount := pr.SchemaHandler.GetColumnNum()
 
 	df := NewDataFrame()
 
-	for i := range colCount {
-		values, _, _, err := pr.ReadColumnByIndex(int64(i), rowCount)
+	for i := int64(0); i < colCount; i++ {
+		colName := pr.SchemaHandler.GetExName(int(i) + 1)
+		values, _, _, err := pr.ReadColumnByIndex(i, rowCount)
 		if err != nil {
 			return nil, eris.Wrapf(err, "Error reading column %d", i)
 		}
 
-		// fmt.Println(values)
-		// fmt.Println(rls)
-		// fmt.Println(dls)
+		// Detect type and create appropriate typed series
+		if len(values) > 0 {
+			var series SeriesInterface
+			switch values[0].(type) {
+			case int32, int64:
+				// Convert to []int
+				intValues := make([]int, len(values))
+				for j, v := range values {
+					switch vt := v.(type) {
+					case int32:
+						intValues[j] = int(vt)
+					case int64:
+						intValues[j] = int(vt)
+					default:
+						// Fallback to generic if conversion fails
+						series = NewGenericSeries(colName, values)
+						break
+					}
+				}
+				if series == nil {
+					series = NewIntSeries(colName, intValues)
+				}
+			case float32, float64:
+				// Convert to []float64
+				floatValues := make([]float64, len(values))
+				for j, v := range values {
+					switch vt := v.(type) {
+					case float32:
+						floatValues[j] = float64(vt)
+					case float64:
+						floatValues[j] = vt
+					default:
+						// Fallback to generic if conversion fails
+						series = NewGenericSeries(colName, values)
+						break
+					}
+				}
+				if series == nil {
+					series = NewFloat64Series(colName, floatValues)
+				}
+			case string:
+				// Convert to []string
+				stringValues := make([]string, len(values))
+				for j, v := range values {
+					if str, ok := v.(string); ok {
+						stringValues[j] = str
+					} else {
+						// Fallback to generic if conversion fails
+						series = NewGenericSeries(colName, values)
+						break
+					}
+				}
+				if series == nil {
+					series = NewStringSeries(colName, stringValues)
+				}
+			case bool:
+				// Convert to []bool
+				boolValues := make([]bool, len(values))
+				for j, v := range values {
+					if b, ok := v.(bool); ok {
+						boolValues[j] = b
+					} else {
+						// Fallback to generic if conversion fails
+						series = NewGenericSeries(colName, values)
+						break
+					}
+				}
+				if series == nil {
+					series = NewBoolSeries(colName, boolValues)
+				}
+			default:
+				// Use generic series for unsupported or mixed types
+				series = NewGenericSeries(colName, values)
+			}
 
-		series := NewSeries(pr.SchemaHandler.GetExName(int(i)+1), values)
-		df = df.AddSeries(series)
+			df.AddSeries(series)
+		} else {
+			// Empty column - create an empty generic series
+			df.AddSeries(NewGenericSeries(colName, []any{}))
+		}
 	}
-
-	// fmt.Println(pr.SchemaHandler.GetColumnNum())
-	// fmt.Println(pr.SchemaHandler.GetInName(1))
-	// fmt.Println(pr.SchemaHandler.GetExName(1))
-
-	// fmt.Println(pr.SchemaHandler.ValueColumns)
-	// fmt.Println(pr.SchemaHandler.GetTypes())
 
 	return df, nil
 }
 
+// NewFromRows creates a DataFrame from a 2D array of strings (rows)
 func NewFromRows(rows [][]string, options ...OptionsMap) *DataFrame {
 	optionsClean := standardizeOptions(options...)
 	headerOption := optionsClean.getOption("header", false).(bool)
+	inferTypes := optionsClean.getOption("inferdatatypes", false).(bool)
 
 	// Prefill header with default values
-	header := []string{}
-	for index := range len(rows[0]) {
-		header = append(header, fmt.Sprintf("Column %d", index))
+	header := make([]string, len(rows[0]))
+	for i := range header {
+		header[i] = fmt.Sprintf("Column %d", i)
 	}
 
 	// Check if header is present
+	var dataRows [][]string
 	if headerOption {
 		header = rows[0]
-		rows = rows[1:]
+		dataRows = rows[1:]
+	} else {
+		dataRows = rows
 	}
 
-	// Transpose the rows
-	rows = TransposeRows(rows)
+	// Transpose the rows to get columns
+	columns := TransposeRows(dataRows)
 
-	// Create the Series
-	series := []*Series{}
-
-	for index, row := range rows {
-		newRow := []any{}
-		for _, cell := range row {
-			newRow = append(newRow, cell)
+	// Create series with type inference if requested
+	df := NewDataFrame()
+	for i, column := range columns {
+		if inferTypes {
+			// Try to infer types based on the column data
+			switch inferColumnType(column) {
+			case "int":
+				intValues, ok := StringSliceToIntSlice(column)
+				if ok {
+					df.AddSeries(NewIntSeries(header[i], intValues))
+				} else {
+					df.AddSeries(NewStringSeries(header[i], column))
+				}
+			case "float":
+				floatValues, ok := StringSliceToFloat64Slice(column)
+				if ok {
+					df.AddSeries(NewFloat64Series(header[i], floatValues))
+				} else {
+					df.AddSeries(NewStringSeries(header[i], column))
+				}
+			case "bool":
+				boolValues, ok := StringSliceToBoolSlice(column)
+				if ok {
+					df.AddSeries(NewBoolSeries(header[i], boolValues))
+				} else {
+					df.AddSeries(NewStringSeries(header[i], column))
+				}
+			default:
+				df.AddSeries(NewStringSeries(header[i], column))
+			}
+		} else {
+			// Default to string series
+			df.AddSeries(NewStringSeries(header[i], column))
 		}
-		series = append(series, NewSeries(header[index], newRow))
 	}
 
-	return &DataFrame{series}
+	return df
 }
 
+// NewFromColumns creates a DataFrame from a 2D array of strings (columns)
 func NewFromColumns(columns [][]string, options ...OptionsMap) *DataFrame {
 	optionsClean := standardizeOptions(options...)
 	headerOption := optionsClean.getOption("header", false).(bool)
+	inferTypes := optionsClean.getOption("inferdatatypes", false).(bool)
 
 	// Prefill header with default values
-	header := []string{}
-	for index := range len(columns) {
-		header = append(header, fmt.Sprintf("Column %d", index))
+	header := make([]string, len(columns))
+	for i := range header {
+		header[i] = fmt.Sprintf("Column %d", i)
 	}
 
 	// Check if header is present
+	var dataColumns [][]string
 	if headerOption {
-		for index, column := range columns {
+		for i, column := range columns {
 			if len(column) > 0 {
-				header[index] = column[0]
-				columns[index] = column[1:]
+				header[i] = column[0]
 			}
 		}
-	}
 
-	// Create the Series
-	series := []*Series{}
-
-	for index, column := range columns {
-		newColumn := []any{}
-
-		for _, cell := range column {
-			newColumn = append(newColumn, cell)
-		}
-
-		series = append(series, NewSeries(header[index], newColumn))
-	}
-
-	return &DataFrame{series}
-}
-
-func (df *DataFrame) PrintTable(options ...OptionsMap) {
-	optionsClean := standardizeOptions(options...)
-	displayRows := optionsClean.getOption("display_rows", 10).(int)
-
-	if df.Width() == 0 {
-		fmt.Println("Empty DataFrame")
-		return
-	}
-
-	// Calculate the max width of each column
-	widths := make([]int, df.Width())
-	printTypes := false // If there is atleast one type, print the types in the header
-
-	// max header
-	for seriesIndex, series := range df.series {
-		widths[seriesIndex] = max(widths[seriesIndex], len(series.Name))
-
-		if series.Type != nil {
-			widths[seriesIndex] = max(widths[seriesIndex], len(series.Type.Name()))
-			printTypes = true
-		}
-
-		for rowIndex := 0; rowIndex < df.Height(); rowIndex++ {
-			widths[seriesIndex] = max(widths[seriesIndex], len(fmt.Sprint(series.Values[rowIndex])))
-		}
-	}
-
-	// Print the header separator
-	fmt.Print("+-")
-	for index := range df.series {
-		fmt.Print(PadRight("", "-", widths[index]))
-		if index < df.Width()-1 {
-			fmt.Print("-+-")
-		}
-	}
-	fmt.Println("-+ ")
-
-	// Print the header
-	fmt.Print("| ")
-	for index, series := range df.series {
-		fmt.Print(PadRight(series.Name, " ", widths[index]))
-		if index < df.Width()-1 {
-			fmt.Print(" | ")
-		}
-	}
-	fmt.Println(" |")
-
-	if printTypes {
-		// Print the type
-		fmt.Print("| ")
-		for index, series := range df.series {
-			if series.Type != nil {
-				fmt.Print(PadRight(series.Type.Name(), " ", widths[index]))
+		// Remove header row from each column
+		dataColumns = make([][]string, len(columns))
+		for i, column := range columns {
+			if len(column) > 1 {
+				dataColumns[i] = column[1:]
 			} else {
-				fmt.Print(PadRight("", " ", widths[index]))
-			}
-			if index < df.Width()-1 {
-				fmt.Print(" | ")
+				dataColumns[i] = []string{}
 			}
 		}
-		fmt.Println(" |")
+	} else {
+		dataColumns = columns
 	}
 
-	// Print the body separator
-	fmt.Print("+-")
-	for index, width := range widths {
-		fmt.Print(PadRight("", "-", width))
-		if index < df.Width()-1 {
-			fmt.Print("-+-")
-		}
-	}
-	fmt.Println("-+")
-
-	// Print the DataFrame
-out:
-	for rowIndex := 0; rowIndex < df.Height(); rowIndex++ {
-		fmt.Print("| ")
-		for colIndex, series := range df.series {
-
-			// This is the limit of rows to print. Use the "display_rows" option to change this.
-			if rowIndex >= displayRows {
-				fmt.Print(PadRight("...", " ", widths[colIndex]))
-				if colIndex < df.Width()-1 {
-					fmt.Print(" | ")
+	// Create series with type inference if requested
+	df := NewDataFrame()
+	for i, column := range dataColumns {
+		if inferTypes {
+			// Try to infer types based on the column data
+			switch inferColumnType(column) {
+			case "int":
+				intValues, ok := StringSliceToIntSlice(column)
+				if ok {
+					df.AddSeries(NewIntSeries(header[i], intValues))
+				} else {
+					df.AddSeries(NewStringSeries(header[i], column))
 				}
-				// After we fill the columns with ... , we break out of the loop
-				if colIndex == df.Width()-1 {
-					fmt.Println(" |")
-					break out
+			case "float":
+				floatValues, ok := StringSliceToFloat64Slice(column)
+				if ok {
+					df.AddSeries(NewFloat64Series(header[i], floatValues))
+				} else {
+					df.AddSeries(NewStringSeries(header[i], column))
 				}
-				continue
+			case "bool":
+				boolValues, ok := StringSliceToBoolSlice(column)
+				if ok {
+					df.AddSeries(NewBoolSeries(header[i], boolValues))
+				} else {
+					df.AddSeries(NewStringSeries(header[i], column))
+				}
+			default:
+				df.AddSeries(NewStringSeries(header[i], column))
 			}
-
-			fmt.Print(PadRight(fmt.Sprint(series.Values[rowIndex]), " ", widths[colIndex]))
-			if colIndex < df.Width()-1 {
-				fmt.Print(" | ")
-			}
-		}
-		fmt.Println(" |")
-	}
-
-	// Print the footer separator
-	fmt.Print("+-")
-	for index := range df.series {
-		fmt.Print(PadRight("", "-", widths[index]))
-		if index < df.Width()-1 {
-			fmt.Print("-+-")
+		} else {
+			// Default to string series
+			df.AddSeries(NewStringSeries(header[i], column))
 		}
 	}
-	fmt.Println("-+")
+
+	return df
 }
 
-func (df *DataFrame) Print() {
-	if df.Width() == 0 {
-		fmt.Println("Empty DataFrame")
-		return
+// inferColumnType tries to determine the data type of a column
+func inferColumnType(column []string) string {
+	if len(column) == 0 {
+		return "string"
 	}
 
-	// Print the header
-	for index, series := range df.series {
-		fmt.Print(series.Name)
-		if index < df.Width()-1 {
-			fmt.Print(", ")
+	// Check if all values are boolean
+	allBool := true
+	for _, val := range column {
+		if val == "" {
+			continue // Skip empty values
+		}
+		if _, err := strconv.ParseBool(val); err != nil {
+			allBool = false
+			break
 		}
 	}
-	fmt.Println("")
+	if allBool {
+		return "bool"
+	}
 
-	// Print the DataFrame
-	for rowIndex := 0; rowIndex < df.Height(); rowIndex++ {
-		for colIndex, series := range df.series {
-			fmt.Print(series.Values[rowIndex])
-			if colIndex < df.Width()-1 {
-				fmt.Print(", ")
+	// Check if all values are integers
+	allInt := true
+	for _, val := range column {
+		if val == "" {
+			continue // Skip empty values
+		}
+		if _, err := strconv.Atoi(val); err != nil {
+			allInt = false
+			break
+		}
+	}
+	if allInt {
+		return "int"
+	}
+
+	// Check if all values are floats
+	allFloat := true
+	for _, val := range column {
+		if val == "" {
+			continue // Skip empty values
+		}
+		if _, err := strconv.ParseFloat(val, 64); err != nil {
+			allFloat = false
+			break
+		}
+	}
+	if allFloat {
+		return "float"
+	}
+
+	// Default to string
+	return "string"
+}
+
+// StringSliceToIntSlice converts a slice of strings to a slice of ints
+func StringSliceToIntSlice(values []string) ([]int, bool) {
+	result := make([]int, len(values))
+	for i, v := range values {
+		if v == "" {
+			result[i] = 0
+			continue
+		}
+
+		// Try to parse as int
+		intVal, err := strconv.Atoi(v)
+		if err != nil {
+			// Try removing any formatting (commas, etc.)
+			cleanVal := strings.ReplaceAll(v, ",", "")
+			intVal, err = strconv.Atoi(cleanVal)
+			if err != nil {
+				return nil, false
 			}
 		}
-		fmt.Println("")
+		result[i] = intVal
+	}
+	return result, true
+}
+
+// StringSliceToFloat64Slice converts a slice of strings to a slice of float64s
+func StringSliceToFloat64Slice(values []string) ([]float64, bool) {
+	result := make([]float64, len(values))
+	for i, v := range values {
+		if v == "" {
+			result[i] = 0
+			continue
+		}
+
+		// Try to parse as float
+		floatVal, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			// Try removing any formatting (commas, etc.)
+			cleanVal := strings.ReplaceAll(v, ",", "")
+			floatVal, err = strconv.ParseFloat(cleanVal, 64)
+			if err != nil {
+				return nil, false
+			}
+		}
+		result[i] = floatVal
+	}
+	return result, true
+}
+
+// StringSliceToBoolSlice converts a slice of strings to a slice of bools
+func StringSliceToBoolSlice(values []string) ([]bool, bool) {
+	result := make([]bool, len(values))
+	for i, v := range values {
+		if v == "" {
+			result[i] = false
+			continue
+		}
+
+		// Try to parse as bool
+		boolVal, err := strconv.ParseBool(v)
+		if err != nil {
+			// Check for common boolean representations
+			switch strings.ToLower(v) {
+			case "yes", "y", "1":
+				result[i] = true
+			case "no", "n", "0":
+				result[i] = false
+			default:
+				return nil, false
+			}
+		} else {
+			result[i] = boolVal
+		}
+	}
+	return result, true
+}
+
+// Helper function to parse int values from strings
+func parseInt(value string) (int, error) {
+	// Remove any commas or other formatting
+	cleanValue := strings.ReplaceAll(value, ",", "")
+	return strconv.Atoi(cleanValue)
+}
+
+// Helper function to parse float values from strings
+func parseFloat(value string) (float64, error) {
+	// Remove any commas or other formatting
+	cleanValue := strings.ReplaceAll(value, ",", "")
+	return strconv.ParseFloat(cleanValue, 64)
+}
+
+// Helper function to parse bool values from strings
+func parseBool(value string) (bool, error) {
+	// Handle standard bool values
+	switch strings.ToLower(value) {
+	case "true", "t", "yes", "y", "1":
+		return true, nil
+	case "false", "f", "no", "n", "0":
+		return false, nil
+	default:
+		return false, errors.New("cannot parse as bool")
 	}
 }

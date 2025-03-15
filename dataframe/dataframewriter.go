@@ -20,7 +20,7 @@ func (df *DataFrame) Write() *DataFrameWriter {
 		options: &Options{
 			delimiter:        ',',
 			trimleadingspace: false,
-			header:           false,
+			header:           true,
 			inferdatatypes:   false,
 		},
 	}
@@ -67,30 +67,9 @@ func (dfw *DataFrameWriter) Save() error {
 }
 
 func WriteCSV(df *DataFrame, path string, options *Options) error {
-
-	header := []string{}
-	if options.header {
-		header = df.ColumnNames()
+	if df.Width() == 0 {
+		return eris.New("Cannot write empty DataFrame to CSV")
 	}
-
-	columns := [][]string{} // Todo: Change to [][]any
-	for _, series := range df.series {
-		seriesValues := InterfaceToTypeSlice[string](series.Values)
-		columns = append(columns, seriesValues)
-	}
-
-	// Transpose the columns
-	columns = TransposeRows(columns)
-
-	// Add the header
-	if len(header) > 0 {
-		columns = append([][]string{header}, columns...)
-	}
-
-	// println("Columns:")
-	// for _, column := range columns {
-	// 	fmt.Println(column)
-	// }
 
 	// Create the file
 	file, err := os.Create(path)
@@ -99,13 +78,41 @@ func WriteCSV(df *DataFrame, path string, options *Options) error {
 	}
 	defer file.Close()
 
+	// Create the CSV writer
 	csvWriter := csv.NewWriter(file)
 	csvWriter.Comma = options.delimiter
 
-	// Write to the csv file
-	err1 := csvWriter.WriteAll(columns)
-	if err1 != nil {
-		return eris.Wrap(err1, "Error writing to file")
+	// Write header if requested
+	if options.header {
+		header := df.ColumnNames()
+		err := csvWriter.Write(header)
+		if err != nil {
+			return eris.Wrap(err, "Error writing header to CSV")
+		}
+	}
+
+	// Write data rows
+	height := df.Height()
+	width := df.Width()
+
+	for i := 0; i < height; i++ {
+		row := make([]string, width)
+		for j, series := range df.series {
+			// Convert any value to string
+			row[j] = convertToString(series.Get(i))
+		}
+
+		err := csvWriter.Write(row)
+		if err != nil {
+			return eris.Wrap(err, "Error writing row to CSV")
+		}
+	}
+
+	// Flush the CSV writer
+	csvWriter.Flush()
+
+	if err := csvWriter.Error(); err != nil {
+		return eris.Wrap(err, "Error flushing CSV writer")
 	}
 
 	return nil
