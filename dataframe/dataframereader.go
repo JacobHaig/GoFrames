@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"teddy/dataframe/series"
 
 	"github.com/rotisserie/eris"
 )
@@ -216,7 +217,7 @@ func readCSV(reader io.Reader, options *Options) (*DataFrame, error) {
 			seriesType, err := inferType(colValues)
 			if err != nil {
 				// If type inference fails, default to string
-				df.AddSeries(NewStringSeries(headers[colIdx], colValues))
+				df.AddSeries(series.NewStringSeries(headers[colIdx], colValues))
 				continue
 			}
 
@@ -224,30 +225,30 @@ func readCSV(reader io.Reader, options *Options) (*DataFrame, error) {
 			case "int":
 				intValues, err := convertToIntSlice(colValues)
 				if err != nil {
-					df.AddSeries(NewStringSeries(headers[colIdx], colValues))
+					df.AddSeries(series.NewStringSeries(headers[colIdx], colValues))
 				} else {
-					df.AddSeries(NewIntSeries(headers[colIdx], intValues))
+					df.AddSeries(series.NewIntSeries(headers[colIdx], intValues))
 				}
 			case "float":
 				floatValues, err := convertToFloatSlice(colValues)
 				if err != nil {
-					df.AddSeries(NewStringSeries(headers[colIdx], colValues))
+					df.AddSeries(series.NewStringSeries(headers[colIdx], colValues))
 				} else {
-					df.AddSeries(NewFloat64Series(headers[colIdx], floatValues))
+					df.AddSeries(series.NewFloat64Series(headers[colIdx], floatValues))
 				}
 			case "bool":
 				boolValues, err := convertToBoolSlice(colValues)
 				if err != nil {
-					df.AddSeries(NewStringSeries(headers[colIdx], colValues))
+					df.AddSeries(series.NewStringSeries(headers[colIdx], colValues))
 				} else {
-					df.AddSeries(NewBoolSeries(headers[colIdx], boolValues))
+					df.AddSeries(series.NewBoolSeries(headers[colIdx], boolValues))
 				}
 			default:
-				df.AddSeries(NewStringSeries(headers[colIdx], colValues))
+				df.AddSeries(series.NewStringSeries(headers[colIdx], colValues))
 			}
 		} else {
 			// No type inference, use string series
-			df.AddSeries(NewStringSeries(headers[colIdx], colValues))
+			df.AddSeries(series.NewStringSeries(headers[colIdx], colValues))
 		}
 	}
 

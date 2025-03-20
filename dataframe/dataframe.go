@@ -3,15 +3,16 @@ package dataframe
 import (
 	"fmt"
 	"slices"
+	"teddy/dataframe/series"
 
 	"github.com/rotisserie/eris"
 )
 
 type DataFrame struct {
-	series []SeriesInterface
+	series []series.SeriesInterface
 }
 
-func NewDataFrame(series ...SeriesInterface) *DataFrame {
+func NewDataFrame(series ...series.SeriesInterface) *DataFrame {
 	return &DataFrame{series}
 }
 
@@ -30,7 +31,7 @@ func (df *DataFrame) allColumnsExist(columnNames []string) bool {
 //
 // Options:
 //   - copy: bool (default: false) If true, the function will return a copy of the Series.
-func (df *DataFrame) GetSeries(columnName string, options ...OptionsMap) SeriesInterface {
+func (df *DataFrame) GetSeries(columnName string, options ...OptionsMap) series.SeriesInterface {
 	optionsClean := standardizeOptions(options...)
 	copy := optionsClean.getOption("copy", false).(bool)
 
@@ -91,7 +92,7 @@ func (df *DataFrame) ApplyIndex(newColumnName string, f func(...any) any, cols .
 	}
 
 	// Add the new column to the DataFrame
-	df.series = append(df.series, NewSeries(newColumnName, newValues))
+	df.series = append(df.series, series.NewSeries(newColumnName, newValues))
 
 	return df
 }
@@ -120,7 +121,7 @@ func (df *DataFrame) ApplyMap(newColumnName string, f func(map[string]any) any) 
 	}
 
 	// Add the new column to the DataFrame
-	df.series = append(df.series, NewSeries(newColumnName, newValues))
+	df.series = append(df.series, series.NewSeries(newColumnName, newValues))
 
 	return df
 }
@@ -152,7 +153,7 @@ func (df *DataFrame) ApplySeries(newColumnName string, f func(...[]any) []any, c
 	}
 
 	// Add the new column to the DataFrame
-	df.series = append(df.series, NewSeries(newColumnName, newValues))
+	df.series = append(df.series, series.NewSeries(newColumnName, newValues))
 
 	return df
 }
@@ -273,7 +274,7 @@ func (df *DataFrame) GroupByIndex(by string, f func(...any) any, cols ...any) *D
 	for key := range groupedValues {
 		byValues = append(byValues, key)
 	}
-	result.AddSeries(NewSeries(by, byValues))
+	result.AddSeries(series.NewSeries(by, byValues))
 
 	// Add aggregated columns
 	for j, columnName := range columns {
@@ -282,7 +283,7 @@ func (df *DataFrame) GroupByIndex(by string, f func(...any) any, cols ...any) *D
 			aggregatedValue := f(groupedValues[key][j]...)
 			aggValues = append(aggValues, aggregatedValue)
 		}
-		result.AddSeries(NewSeries(columnName, aggValues))
+		result.AddSeries(series.NewSeries(columnName, aggValues))
 	}
 
 	return result
@@ -361,7 +362,7 @@ func (df *DataFrame) DropRows(indexes ...int) *DataFrame {
 	return df
 }
 
-func (df *DataFrame) DropRowsBySeries(series SeriesInterface) *DataFrame {
+func (df *DataFrame) DropRowsBySeries(series series.SeriesInterface) *DataFrame {
 	// Convert the Series to a list of indexes
 	indexes := []int{}
 	for i := 0; i < series.Len(); i++ {
@@ -407,7 +408,7 @@ func (df *DataFrame) AsType(columnName string, newType string) *DataFrame {
 	return df
 }
 
-func (df *DataFrame) AddSeries(series SeriesInterface) *DataFrame {
+func (df *DataFrame) AddSeries(series series.SeriesInterface) *DataFrame {
 	// If the DataFrame is empty, add the Series
 	if df.Width() == 0 {
 		df.series = append(df.series, series)
@@ -436,53 +437,57 @@ func (df *DataFrame) AddRow(row []any) *DataFrame {
 
 	// Create new rows for each series
 	for i, value := range row {
-		series := df.series[i]
+		seriess := df.series[i]
 
 		// For typed series, we need to handle type conversion
-		switch s := series.(type) {
-		case *IntSeries:
+		switch s := seriess.(type) {
+		case *series.IntSeries:
 			if intVal, ok := value.(int); ok {
-				newValues := append(s.values, intVal)
-				df.series[i] = NewIntSeries(s.name, newValues)
+				newValues := append(s.Values(), intVal)
+				intValues, _ := series.ToIntSlice(newValues)
+				df.series[i] = series.NewIntSeries(s.Name(), intValues)
 			} else {
 				// Convert to int or fall back to generic
 				genSeries := s.ToGenericSeries()
-				genValues := append(genSeries.values, value)
-				df.series[i] = NewGenericSeries(genSeries.name, genValues)
+				genValues := append(genSeries.Values(), value)
+				df.series[i] = series.NewGenericSeries(genSeries.Name(), genValues)
 			}
-		case *Float64Series:
+		case *series.Float64Series:
 			if floatVal, ok := value.(float64); ok {
-				newValues := append(s.values, floatVal)
-				df.series[i] = NewFloat64Series(s.name, newValues)
+				newValues := append(s.Values(), floatVal)
+				floatValues, _ := series.ToFloat64Slice(newValues)
+				df.series[i] = series.NewFloat64Series(s.Name(), floatValues)
 			} else {
 				// Convert to float64 or fall back to generic
 				genSeries := s.ToGenericSeries()
-				genValues := append(genSeries.values, value)
-				df.series[i] = NewGenericSeries(genSeries.name, genValues)
+				genValues := append(genSeries.Values(), value)
+				df.series[i] = series.NewGenericSeries(genSeries.Name(), genValues)
 			}
-		case *StringSeries:
+		case *series.StringSeries:
 			if strVal, ok := value.(string); ok {
-				newValues := append(s.values, strVal)
-				df.series[i] = NewStringSeries(s.name, newValues)
+				newValues := append(s.Values(), strVal)
+				stringValue := series.ToStringSlice(newValues)
+				df.series[i] = series.NewStringSeries(s.Name(), stringValue)
 			} else {
 				// Convert to string or fall back to generic
 				genSeries := s.ToGenericSeries()
-				genValues := append(genSeries.values, value)
-				df.series[i] = NewGenericSeries(genSeries.name, genValues)
+				genValues := append(genSeries.Values(), value)
+				df.series[i] = series.NewGenericSeries(genSeries.Name(), genValues)
 			}
-		case *BoolSeries:
+		case *series.BoolSeries:
 			if boolVal, ok := value.(bool); ok {
-				newValues := append(s.values, boolVal)
-				df.series[i] = NewBoolSeries(s.name, newValues)
+				newValues := append(s.Values(), boolVal)
+				boolValues, _ := series.ToBoolSlice(newValues)
+				df.series[i] = series.NewBoolSeries(s.Name(), boolValues)
 			} else {
 				// Convert to bool or fall back to generic
 				genSeries := s.ToGenericSeries()
-				genValues := append(genSeries.values, value)
-				df.series[i] = NewGenericSeries(genSeries.name, genValues)
+				genValues := append(genSeries.Values(), value)
+				df.series[i] = series.NewGenericSeries(genSeries.Name(), genValues)
 			}
-		case *GenericSeries:
-			newValues := append(s.values, value)
-			df.series[i] = NewGenericSeries(s.name, newValues)
+		case *series.GenericSeries:
+			newValues := append(s.Values(), value)
+			df.series[i] = series.NewGenericSeries(s.Name(), newValues)
 		}
 	}
 
@@ -511,7 +516,7 @@ func (df *DataFrame) Select(selectedColumn ...any) *DataFrame {
 		return &DataFrame{}
 	}
 
-	newSeries := []SeriesInterface{}
+	newSeries := []series.SeriesInterface{}
 	for _, columnName := range columnNames {
 		for _, series := range df.series {
 			if series.Name() == columnName {

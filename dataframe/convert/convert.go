@@ -35,7 +35,7 @@ import (
 
 // convertValue converts a value to a new type
 // It's used for the older Series implementation for backward compatibility
-func convertValue(value any, newType string) (any, error) {
+func ConvertValue(value any, newType string) (any, error) {
 	switch newType {
 	case "int":
 		i, err := convertToInt(value)
@@ -50,9 +50,9 @@ func convertValue(value any, newType string) (any, error) {
 		}
 		return f, nil
 	case "string":
-		return convertToString(value), nil
+		return ConvertToString(value), nil
 	case "bool":
-		return convertToBool(value), nil
+		return ConvertToBool(value), nil
 	case "time", "datetime":
 		t, err := convertToTime(value)
 		if err != nil {
@@ -181,14 +181,14 @@ func convertStringToFloat(value string) (float64, error) {
 	return f, nil
 }
 
-func convertToString(value any) string {
+func ConvertToString(value any) string {
 	if value == nil {
 		return ""
 	}
 	return fmt.Sprint(value)
 }
 
-func convertToBool(value any) bool {
+func ConvertToBool(value any) bool {
 	switch v := value.(type) {
 	case bool:
 		return v

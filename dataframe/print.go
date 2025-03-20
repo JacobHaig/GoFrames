@@ -2,6 +2,7 @@ package dataframe
 
 import (
 	"fmt"
+	"teddy/dataframe/series"
 )
 
 // PrintTable prints a formatted table representation of the DataFrame
@@ -181,35 +182,39 @@ func (df *DataFrame) Summary() {
 
 	// Print column information
 	fmt.Println("Columns:")
-	for i, series := range df.series {
-		fmt.Printf("  %d: %s", i, series.Name())
+	for i, seriess := range df.series {
+		fmt.Printf("  %d: %s", i, seriess.Name())
 
 		// Show column type
-		if series.Type() != nil {
-			fmt.Printf(" (Type: %s)", series.Type().Name())
+		if seriess.Type() != nil {
+			fmt.Printf(" (Type: %s)", seriess.Type().Name())
 		}
 
 		// Show type-specific information
-		switch s := series.(type) {
-		case *IntSeries:
-			if len(s.values) > 0 {
-				min, max := findIntMinMax(s.values)
+		switch s := seriess.(type) {
+		case *series.IntSeries:
+			if len(s.Values()) > 0 {
+				values, _ := series.ToIntSlice(s.Values())
+				min, max := findIntMinMax(values)
 				fmt.Printf(" [Min: %d, Max: %d]", min, max)
 			}
-		case *Float64Series:
-			if len(s.values) > 0 {
-				min, max := findFloat64MinMax(s.values)
+		case *series.Float64Series:
+			if len(s.Values()) > 0 {
+				values, _ := series.ToFloat64Slice(s.Values())
+				min, max := findFloat64MinMax(values)
 				fmt.Printf(" [Min: %.2f, Max: %.2f]", min, max)
 			}
-		case *StringSeries:
-			if len(s.values) > 0 {
-				uniqueCount := countUniqueStrings(s.values)
+		case *series.StringSeries:
+			if len(s.Values()) > 0 {
+				values := series.ToStringSlice(s.Values())
+				uniqueCount := countUniqueStrings(values)
 				fmt.Printf(" [%d unique values]", uniqueCount)
 			}
-		case *BoolSeries:
-			if len(s.values) > 0 {
-				trueCount := countBoolTrue(s.values)
-				fmt.Printf(" [%d true, %d false]", trueCount, len(s.values)-trueCount)
+		case *series.BoolSeries:
+			if len(s.Values()) > 0 {
+				values, _ := series.ToBoolSlice(s.Values())
+				trueCount := countBoolTrue(values)
+				fmt.Printf(" [%d true, %d false]", trueCount, len(s.Values())-trueCount)
 			}
 		}
 
@@ -220,28 +225,28 @@ func (df *DataFrame) Summary() {
 	fmt.Println("\nMemory Usage Estimate:")
 	totalBytes := int64(0)
 
-	for _, series := range df.series {
+	for _, seriess := range df.series {
 		seriesBytes := int64(0)
-		switch s := series.(type) {
-		case *IntSeries:
-			seriesBytes = int64(len(s.values) * 8) // 8 bytes per int
-		case *Float64Series:
-			seriesBytes = int64(len(s.values) * 8) // 8 bytes per float64
-		case *BoolSeries:
-			seriesBytes = int64(len(s.values) * 1) // 1 byte per bool
-		case *StringSeries:
+		switch s := seriess.(type) {
+		case *series.IntSeries:
+			seriesBytes = int64(s.Len() * 8) // 8 bytes per int
+		case *series.Float64Series:
+			seriesBytes = int64(s.Len() * 8) // 8 bytes per float64
+		case *series.BoolSeries:
+			seriesBytes = int64(s.Len() * 1) // 1 byte per bool
+		case *series.StringSeries:
 			// Estimate string size (rough approximation)
 			stringSize := int64(0)
-			for _, str := range s.values {
+			for _, str := range series.ToStringSlice(s.Values()) {
 				stringSize += int64(len(str))
 			}
-			seriesBytes = stringSize + int64(len(s.values)*16) // String data + overhead
-		case *GenericSeries:
+			seriesBytes = stringSize + int64(s.Len()*16) // String data + overhead
+		case *series.GenericSeries:
 			// Generic series is hard to estimate precisely
-			seriesBytes = int64(len(s.values) * 16) // Pointer size + type info
+			seriesBytes = int64(s.Len() * 16) // Pointer size + type info
 		}
 
-		fmt.Printf("  %s: ~%s\n", series.Name(), formatBytes(seriesBytes))
+		fmt.Printf("  %s: ~%s\n", seriess.Name(), formatBytes(seriesBytes))
 		totalBytes += seriesBytes
 	}
 

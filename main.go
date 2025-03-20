@@ -5,6 +5,7 @@ import (
 	"runtime"
 
 	"teddy/dataframe"
+	"teddy/dataframe/series"
 )
 
 func memUsage(m1, m2 *runtime.MemStats) {
@@ -26,7 +27,7 @@ func main() {
 	for i := 0; i < 1000000; i++ {
 		intValues[i] = i
 	}
-	untypedDF = untypedDF.AddSeries(dataframe.NewGenericSeries("integers", intValues))
+	untypedDF = untypedDF.AddSeries(series.NewGenericSeries("integers", intValues))
 
 	// Measure memory after creating untyped DataFrame
 	runtime.ReadMemStats(&m2)
@@ -43,7 +44,7 @@ func main() {
 		typedValues[i] = i
 	}
 	typedDF := dataframe.NewDataFrame()
-	typedDF = typedDF.AddSeries(dataframe.NewIntSeries("integers", typedValues))
+	typedDF = typedDF.AddSeries(series.NewIntSeries("integers", typedValues))
 
 	// Measure memory after creating typed DataFrame
 	runtime.ReadMemStats(&m4)
@@ -60,9 +61,9 @@ func main() {
 
 	// Create a simple DataFrame for operations
 	df := dataframe.NewDataFrame()
-	df = df.AddSeries(dataframe.NewIntSeries("Age", []int{25, 30, 35, 40, 45}))
-	df = df.AddSeries(dataframe.NewStringSeries("Name", []string{"Alice", "Bob", "Charlie", "David", "Eve"}))
-	df = df.AddSeries(dataframe.NewFloat64Series("Salary", []float64{50000.0, 60000.0, 70000.0, 80000.0, 90000.0}))
+	df = df.AddSeries(series.NewIntSeries("Age", []int{25, 30, 35, 40, 45}))
+	df = df.AddSeries(series.NewStringSeries("Name", []string{"Alice", "Bob", "Charlie", "David", "Eve"}))
+	df = df.AddSeries(series.NewFloat64Series("Salary", []float64{50000.0, 60000.0, 70000.0, 80000.0, 90000.0}))
 
 	// Display the DataFrame
 	fmt.Println("Original DataFrame:")

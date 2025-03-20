@@ -4,6 +4,8 @@ import (
 	"encoding/csv"
 	"os"
 
+	convert "teddy/dataframe/convert"
+
 	"github.com/rotisserie/eris"
 )
 
@@ -99,7 +101,7 @@ func WriteCSV(df *DataFrame, path string, options *Options) error {
 		row := make([]string, width)
 		for j, series := range df.series {
 			// Convert any value to string
-			row[j] = convertToString(series.Get(i))
+			row[j] = convert.ConvertToString(series.Get(i))
 		}
 
 		err := csvWriter.Write(row)

@@ -1,5 +1,7 @@
 package dataframe
 
+import "teddy/dataframe/series"
+
 type Number interface {
 	int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64 | float32 | float64
 }
@@ -44,7 +46,7 @@ func Sum(list ...any) any {
 
 	// Fall back to generic handling
 	// Try to convert all values to float64 for summation
-	values, ok := ToFloat64Slice(list)
+	values, ok := series.ToFloat64Slice(list)
 	if ok {
 		var sum float64
 		for _, val := range values {
@@ -93,7 +95,7 @@ func Mean(list ...any) any {
 
 	// Fall back to generic handling
 	// Try to convert all values to float64 for calculation
-	values, ok := ToFloat64Slice(list)
+	values, ok := series.ToFloat64Slice(list)
 	if ok && len(values) > 0 {
 		var sum float64
 		for _, val := range values {
@@ -160,7 +162,7 @@ func Min(list ...any) any {
 
 	// Fall back to generic handling
 	// Try to convert all values to float64 for comparison
-	values, ok := ToFloat64Slice(list)
+	values, ok := series.ToFloat64Slice(list)
 	if ok && len(values) > 0 {
 		minVal := values[0]
 		for _, val := range values[1:] {
@@ -229,7 +231,7 @@ func Max(list ...any) any {
 
 	// Fall back to generic handling
 	// Try to convert all values to float64 for comparison
-	values, ok := ToFloat64Slice(list)
+	values, ok := series.ToFloat64Slice(list)
 	if ok && len(values) > 0 {
 		maxVal := values[0]
 		for _, val := range values[1:] {

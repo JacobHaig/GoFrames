@@ -2,6 +2,7 @@ package dataframe
 
 import (
 	"strconv"
+	"teddy/dataframe/series"
 	"testing"
 )
 
@@ -9,9 +10,9 @@ func TestNewDataFrame(t *testing.T) {
 	df := NewDataFrame()
 
 	// Add typed series instead of generic series
-	df = df.AddSeries(NewStringSeries("First Name", []string{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
-	df = df.AddSeries(NewStringSeries("Last Name", []string{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
-	df = df.AddSeries(NewIntSeries("Age", []int{35, 23, 48, 63, 28, 32}))
+	df = df.AddSeries(series.NewStringSeries("First Name", []string{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
+	df = df.AddSeries(series.NewStringSeries("Last Name", []string{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
+	df = df.AddSeries(series.NewIntSeries("Age", []int{35, 23, 48, 63, 28, 32}))
 
 	// Add a row of mixed types
 	df = df.AddRow([]any{"Jane", "Doe", 29})
@@ -35,9 +36,9 @@ func TestNewDataFrame(t *testing.T) {
 func TestFilterMap(t *testing.T) {
 	df := NewDataFrame()
 
-	df = df.AddSeries(NewStringSeries("First Name", []string{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
-	df = df.AddSeries(NewStringSeries("Last Name", []string{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
-	df = df.AddSeries(NewIntSeries("Age", []int{35, 23, 48, 63, 28, 32}))
+	df = df.AddSeries(series.NewStringSeries("First Name", []string{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
+	df = df.AddSeries(series.NewStringSeries("Last Name", []string{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
+	df = df.AddSeries(series.NewIntSeries("Age", []int{35, 23, 48, 63, 28, 32}))
 
 	// Filter rows where Age > 30
 	df = df.FilterMap(func(m map[string]any) bool {
@@ -73,9 +74,9 @@ func TestFilterMap(t *testing.T) {
 func TestDeleteColumn(t *testing.T) {
 	df := NewDataFrame()
 
-	df = df.AddSeries(NewStringSeries("First Name", []string{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
-	df = df.AddSeries(NewStringSeries("Last Name", []string{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
-	df = df.AddSeries(NewIntSeries("Age", []int{35, 23, 48, 63, 28, 32}))
+	df = df.AddSeries(series.NewStringSeries("First Name", []string{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
+	df = df.AddSeries(series.NewStringSeries("Last Name", []string{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
+	df = df.AddSeries(series.NewIntSeries("Age", []int{35, 23, 48, 63, 28, 32}))
 
 	df = df.DropColumn("Age")
 
@@ -84,7 +85,7 @@ func TestDeleteColumn(t *testing.T) {
 		t.Errorf("Expected 6 rows and 2 columns, got %d rows and %d columns", row, col)
 	}
 
-	df = df.AddSeries(NewIntSeries("Age", []int{35, 23, 48, 63, 28, 32}))
+	df = df.AddSeries(series.NewIntSeries("Age", []int{35, 23, 48, 63, 28, 32}))
 
 	row, col = df.Shape()
 	if row != 6 || col != 3 {
@@ -102,9 +103,9 @@ func TestDeleteColumn(t *testing.T) {
 func TestApplyIndex(t *testing.T) {
 	df := NewDataFrame()
 
-	df = df.AddSeries(NewStringSeries("First Name", []string{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
-	df = df.AddSeries(NewStringSeries("Last Name", []string{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
-	df = df.AddSeries(NewStringSeries("Age", []string{"35", "23", "48", "63", "28", "32"}))
+	df = df.AddSeries(series.NewStringSeries("First Name", []string{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
+	df = df.AddSeries(series.NewStringSeries("Last Name", []string{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
+	df = df.AddSeries(series.NewStringSeries("Age", []string{"35", "23", "48", "63", "28", "32"}))
 
 	df1 := df.ApplyIndex("Full Name", func(a ...any) any {
 		return a[0].(string) + " " + a[1].(string)
@@ -177,10 +178,10 @@ func TestApplyIndex(t *testing.T) {
 func TestTypeConversion(t *testing.T) {
 	df := NewDataFrame()
 
-	df = df.AddSeries(NewStringSeries("First Name", []string{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
-	df = df.AddSeries(NewIntSeries("Age", []int{35, 23, 48, 63, 28, 32}))
-	df = df.AddSeries(NewBoolSeries("Is Student", []bool{true, false, true, false, true, false}))
-	df = df.AddSeries(NewFloat64Series("Height", []float64{5.8, 6.1, 5.9, 5.6, 6.0, 5.7}))
+	df = df.AddSeries(series.NewStringSeries("First Name", []string{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
+	df = df.AddSeries(series.NewIntSeries("Age", []int{35, 23, 48, 63, 28, 32}))
+	df = df.AddSeries(series.NewBoolSeries("Is Student", []bool{true, false, true, false, true, false}))
+	df = df.AddSeries(series.NewFloat64Series("Height", []float64{5.8, 6.1, 5.9, 5.6, 6.0, 5.7}))
 
 	// Test type conversion
 	df = df.AsType("Age", "float")
@@ -233,9 +234,9 @@ func TestTypeConversion(t *testing.T) {
 func TestComplexTypeConversion(t *testing.T) {
 	df := NewDataFrame()
 
-	df = df.AddSeries(NewStringSeries("First Name", []string{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
-	df = df.AddSeries(NewStringSeries("Last Name", []string{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
-	df = df.AddSeries(NewIntSeries("Age", []int{35, 23, 48, 63, 28, 32}))
+	df = df.AddSeries(series.NewStringSeries("First Name", []string{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
+	df = df.AddSeries(series.NewStringSeries("Last Name", []string{"Doe", "Smith", "Johnson", "Brown", "Peters", "Williams"}))
+	df = df.AddSeries(series.NewIntSeries("Age", []int{35, 23, 48, 63, 28, 32}))
 
 	// Convert Ages to float and apply a mathematical transformation
 	df = df.AsType("Age", "float")
@@ -268,9 +269,9 @@ func TestComplexTypeConversion(t *testing.T) {
 func TestGroupByIndex(t *testing.T) {
 	df := NewDataFrame()
 
-	df = df.AddSeries(NewStringSeries("First Name", []string{"John", "Jack", "John", "Jill", "Jack", "Aaron"}))
-	df = df.AddSeries(NewStringSeries("Last Name", []string{"Doe", "Smith", "Doe", "Brown", "Smith", "Williams"}))
-	df = df.AddSeries(NewIntSeries("Age", []int{35, 23, 48, 63, 28, 32}))
+	df = df.AddSeries(series.NewStringSeries("First Name", []string{"John", "Jack", "John", "Jill", "Jack", "Aaron"}))
+	df = df.AddSeries(series.NewStringSeries("Last Name", []string{"Doe", "Smith", "Doe", "Brown", "Smith", "Williams"}))
+	df = df.AddSeries(series.NewIntSeries("Age", []int{35, 23, 48, 63, 28, 32}))
 
 	// Group by First Name and sum the Ages
 	df = df.GroupByIndex("First Name", func(list ...any) any {
@@ -309,9 +310,9 @@ func TestGroupByIndex(t *testing.T) {
 func TestAggGroupByIndex(t *testing.T) {
 	df := NewDataFrame()
 
-	df = df.AddSeries(NewStringSeries("First Name", []string{"John", "Jack", "John", "Jill", "Jack", "Aaron"}))
-	df = df.AddSeries(NewStringSeries("Last Name", []string{"Doe", "Smith", "Doe", "Brown", "Smith", "Williams"}))
-	df = df.AddSeries(NewIntSeries("Age", []int{35, 23, 48, 63, 28, 32}))
+	df = df.AddSeries(series.NewStringSeries("First Name", []string{"John", "Jack", "John", "Jill", "Jack", "Aaron"}))
+	df = df.AddSeries(series.NewStringSeries("Last Name", []string{"Doe", "Smith", "Doe", "Brown", "Smith", "Williams"}))
+	df = df.AddSeries(series.NewIntSeries("Age", []int{35, 23, 48, 63, 28, 32}))
 
 	// Group by First Name and use the Sum aggregator
 	df = df.GroupByIndex("First Name", Sum, "Age")
@@ -397,9 +398,9 @@ Bob,22,true`
 func TestWriteAndReadCSV(t *testing.T) {
 	// Create a simple DataFrame
 	df := NewDataFrame()
-	df = df.AddSeries(NewStringSeries("Name", []string{"John", "Jane", "Bob"}))
-	df = df.AddSeries(NewIntSeries("Age", []int{25, 30, 22}))
-	df = df.AddSeries(NewBoolSeries("IsStudent", []bool{true, false, true}))
+	df = df.AddSeries(series.NewStringSeries("Name", []string{"John", "Jane", "Bob"}))
+	df = df.AddSeries(series.NewIntSeries("Age", []int{25, 30, 22}))
+	df = df.AddSeries(series.NewBoolSeries("IsStudent", []bool{true, false, true}))
 
 	// Use a temporary file
 	tempFile := "test_output.csv"
@@ -456,7 +457,7 @@ func TestWriteAndReadCSV(t *testing.T) {
 
 func TestTypedSeriesCreation(t *testing.T) {
 	// Test creating different types of Series
-	intSeries := NewIntSeries("Numbers", []int{1, 2, 3, 4, 5})
+	intSeries := series.NewIntSeries("Numbers", []int{1, 2, 3, 4, 5})
 	if intSeries.Type().String() != "int" {
 		t.Errorf("Expected int series, got %s", intSeries.Type().String())
 	}
@@ -464,31 +465,31 @@ func TestTypedSeriesCreation(t *testing.T) {
 		t.Errorf("Expected length 5, got %d", intSeries.Len())
 	}
 
-	floatSeries := NewFloat64Series("Floats", []float64{1.1, 2.2, 3.3})
+	floatSeries := series.NewFloat64Series("Floats", []float64{1.1, 2.2, 3.3})
 	if floatSeries.Type().String() != "float64" {
 		t.Errorf("Expected float64 series, got %s", floatSeries.Type().String())
 	}
 
-	stringSeries := NewStringSeries("Strings", []string{"a", "b", "c"})
+	stringSeries := series.NewStringSeries("Strings", []string{"a", "b", "c"})
 	if stringSeries.Type().String() != "string" {
 		t.Errorf("Expected string series, got %s", stringSeries.Type().String())
 	}
 
-	boolSeries := NewBoolSeries("Bools", []bool{true, false, true})
+	boolSeries := series.NewBoolSeries("Bools", []bool{true, false, true})
 	if boolSeries.Type().String() != "bool" {
 		t.Errorf("Expected bool series, got %s", boolSeries.Type().String())
 	}
 
 	// Test auto-detection of types
-	mixedSeries := NewSeries("Mixed", []any{1, "string", true})
+	mixedSeries := series.NewSeries("Mixed", []any{1, "string", true})
 	// This should remain a generic series since the types are mixed
-	if _, ok := mixedSeries.(*GenericSeries); !ok {
+	if _, ok := mixedSeries.(*series.GenericSeries); !ok {
 		t.Errorf("Expected generic series for mixed types")
 	}
 
 	// This should be detected as an int series
-	intOnlySeries := NewSeries("IntOnly", []any{1, 2, 3})
-	if _, ok := intOnlySeries.(*IntSeries); !ok {
+	intOnlySeries := series.NewSeries("IntOnly", []any{1, 2, 3})
+	if _, ok := intOnlySeries.(*series.IntSeries); !ok {
 		t.Errorf("Expected int series for int-only values")
 	}
 }
@@ -506,7 +507,7 @@ func TestMemoryUsage(t *testing.T) {
 	for i := 0; i < size; i++ {
 		intValues[i] = i
 	}
-	df1 = df1.AddSeries(NewIntSeries("Typed", intValues))
+	df1 = df1.AddSeries(series.NewIntSeries("Typed", intValues))
 
 	// Create a DataFrame with an untyped series
 	df2 := NewDataFrame()
@@ -514,7 +515,7 @@ func TestMemoryUsage(t *testing.T) {
 	for i := 0; i < size; i++ {
 		anyValues[i] = i
 	}
-	df2 = df2.AddSeries(NewGenericSeries("Untyped", anyValues))
+	df2 = df2.AddSeries(series.NewGenericSeries("Untyped", anyValues))
 
 	// Just check that they have the same shape - no actual memory test
 	row1, col1 := df1.Shape()

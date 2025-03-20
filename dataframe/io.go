@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"teddy/dataframe/series"
 
 	"github.com/rotisserie/eris"
 	"github.com/xitongsys/parquet-go-source/local"
@@ -103,7 +104,7 @@ func ReadParquet(filename string, options ...OptionsMap) (*DataFrame, error) {
 
 		// Detect type and create appropriate typed series
 		if len(values) > 0 {
-			var series SeriesInterface
+			var seriess series.SeriesInterface
 
 			switch values[0].(type) {
 			case int32, int64:
@@ -117,11 +118,11 @@ func ReadParquet(filename string, options ...OptionsMap) (*DataFrame, error) {
 						intValues[j] = int(vt)
 					default:
 						// Fallback to generic if conversion fails
-						series = NewGenericSeries(colName, values)
+						seriess = series.NewGenericSeries(colName, values)
 					}
 				}
-				if series == nil {
-					series = NewIntSeries(colName, intValues)
+				if seriess == nil {
+					seriess = series.NewIntSeries(colName, intValues)
 				}
 
 			case float32, float64:
@@ -136,12 +137,12 @@ func ReadParquet(filename string, options ...OptionsMap) (*DataFrame, error) {
 						floatValues[j] = vt
 					default:
 						// Fallback to generic if conversion fails
-						series = NewGenericSeries(colName, values)
+						seriess = series.NewGenericSeries(colName, values)
 					}
 				}
 
-				if series == nil {
-					series = NewFloat64Series(colName, floatValues)
+				if seriess == nil {
+					seriess = series.NewFloat64Series(colName, floatValues)
 				}
 
 			case string:
@@ -152,12 +153,12 @@ func ReadParquet(filename string, options ...OptionsMap) (*DataFrame, error) {
 						stringValues[j] = str
 					} else {
 						// Fallback to generic if conversion fails
-						series = NewGenericSeries(colName, values)
+						seriess = series.NewGenericSeries(colName, values)
 						break
 					}
 				}
-				if series == nil {
-					series = NewStringSeries(colName, stringValues)
+				if seriess == nil {
+					seriess = series.NewStringSeries(colName, stringValues)
 				}
 
 			case bool:
@@ -168,23 +169,23 @@ func ReadParquet(filename string, options ...OptionsMap) (*DataFrame, error) {
 						boolValues[j] = b
 					} else {
 						// Fallback to generic if conversion fails
-						series = NewGenericSeries(colName, values)
+						seriess = series.NewGenericSeries(colName, values)
 						break
 					}
 				}
-				if series == nil {
-					series = NewBoolSeries(colName, boolValues)
+				if seriess == nil {
+					seriess = series.NewBoolSeries(colName, boolValues)
 				}
 
 			default:
 				// Use generic series for unsupported or mixed types
-				series = NewGenericSeries(colName, values)
+				seriess = series.NewGenericSeries(colName, values)
 			}
 
-			df.AddSeries(series)
+			df.AddSeries(seriess)
 		} else {
 			// Empty column - create an empty generic series
-			df.AddSeries(NewGenericSeries(colName, []any{}))
+			df.AddSeries(series.NewGenericSeries(colName, []any{}))
 		}
 	}
 
@@ -222,32 +223,32 @@ func NewFromRows(rows [][]string, options ...OptionsMap) *DataFrame {
 			// Try to infer types based on the column data
 			switch inferColumnType(column) {
 			case "int":
-				intValues, ok := StringSliceToIntSlice(column)
+				intValues, ok := series.StringSliceToIntSlice(column)
 				if ok {
-					df.AddSeries(NewIntSeries(header[i], intValues))
+					df.AddSeries(series.NewIntSeries(header[i], intValues))
 				} else {
-					df.AddSeries(NewStringSeries(header[i], column))
+					df.AddSeries(series.NewStringSeries(header[i], column))
 				}
 			case "float":
-				floatValues, ok := StringSliceToFloat64Slice(column)
+				floatValues, ok := series.StringSliceToFloat64Slice(column)
 				if ok {
-					df.AddSeries(NewFloat64Series(header[i], floatValues))
+					df.AddSeries(series.NewFloat64Series(header[i], floatValues))
 				} else {
-					df.AddSeries(NewStringSeries(header[i], column))
+					df.AddSeries(series.NewStringSeries(header[i], column))
 				}
 			case "bool":
-				boolValues, ok := StringSliceToBoolSlice(column)
+				boolValues, ok := series.StringSliceToBoolSlice(column)
 				if ok {
-					df.AddSeries(NewBoolSeries(header[i], boolValues))
+					df.AddSeries(series.NewBoolSeries(header[i], boolValues))
 				} else {
-					df.AddSeries(NewStringSeries(header[i], column))
+					df.AddSeries(series.NewStringSeries(header[i], column))
 				}
 			default:
-				df.AddSeries(NewStringSeries(header[i], column))
+				df.AddSeries(series.NewStringSeries(header[i], column))
 			}
 		} else {
 			// Default to string series
-			df.AddSeries(NewStringSeries(header[i], column))
+			df.AddSeries(series.NewStringSeries(header[i], column))
 		}
 	}
 
@@ -295,32 +296,32 @@ func NewFromColumns(columns [][]string, options ...OptionsMap) *DataFrame {
 			// Try to infer types based on the column data
 			switch inferColumnType(column) {
 			case "int":
-				intValues, ok := StringSliceToIntSlice(column)
+				intValues, ok := series.StringSliceToIntSlice(column)
 				if ok {
-					df.AddSeries(NewIntSeries(header[i], intValues))
+					df.AddSeries(series.NewIntSeries(header[i], intValues))
 				} else {
-					df.AddSeries(NewStringSeries(header[i], column))
+					df.AddSeries(series.NewStringSeries(header[i], column))
 				}
 			case "float":
-				floatValues, ok := StringSliceToFloat64Slice(column)
+				floatValues, ok := series.StringSliceToFloat64Slice(column)
 				if ok {
-					df.AddSeries(NewFloat64Series(header[i], floatValues))
+					df.AddSeries(series.NewFloat64Series(header[i], floatValues))
 				} else {
-					df.AddSeries(NewStringSeries(header[i], column))
+					df.AddSeries(series.NewStringSeries(header[i], column))
 				}
 			case "bool":
-				boolValues, ok := StringSliceToBoolSlice(column)
+				boolValues, ok := series.StringSliceToBoolSlice(column)
 				if ok {
-					df.AddSeries(NewBoolSeries(header[i], boolValues))
+					df.AddSeries(series.NewBoolSeries(header[i], boolValues))
 				} else {
-					df.AddSeries(NewStringSeries(header[i], column))
+					df.AddSeries(series.NewStringSeries(header[i], column))
 				}
 			default:
-				df.AddSeries(NewStringSeries(header[i], column))
+				df.AddSeries(series.NewStringSeries(header[i], column))
 			}
 		} else {
 			// Default to string series
-			df.AddSeries(NewStringSeries(header[i], column))
+			df.AddSeries(series.NewStringSeries(header[i], column))
 		}
 	}
 
@@ -380,82 +381,6 @@ func inferColumnType(column []string) string {
 
 	// Default to string
 	return "string"
-}
-
-// StringSliceToIntSlice converts a slice of strings to a slice of ints
-func StringSliceToIntSlice(values []string) ([]int, bool) {
-	result := make([]int, len(values))
-	for i, v := range values {
-		if v == "" {
-			result[i] = 0
-			continue
-		}
-
-		// Try to parse as int
-		intVal, err := strconv.Atoi(v)
-		if err != nil {
-			// Try removing any formatting (commas, etc.)
-			cleanVal := strings.ReplaceAll(v, ",", "")
-			intVal, err = strconv.Atoi(cleanVal)
-			if err != nil {
-				return nil, false
-			}
-		}
-		result[i] = intVal
-	}
-	return result, true
-}
-
-// StringSliceToFloat64Slice converts a slice of strings to a slice of float64s
-func StringSliceToFloat64Slice(values []string) ([]float64, bool) {
-	result := make([]float64, len(values))
-	for i, v := range values {
-		if v == "" {
-			result[i] = 0
-			continue
-		}
-
-		// Try to parse as float
-		floatVal, err := strconv.ParseFloat(v, 64)
-		if err != nil {
-			// Try removing any formatting (commas, etc.)
-			cleanVal := strings.ReplaceAll(v, ",", "")
-			floatVal, err = strconv.ParseFloat(cleanVal, 64)
-			if err != nil {
-				return nil, false
-			}
-		}
-		result[i] = floatVal
-	}
-	return result, true
-}
-
-// StringSliceToBoolSlice converts a slice of strings to a slice of bools
-func StringSliceToBoolSlice(values []string) ([]bool, bool) {
-	result := make([]bool, len(values))
-	for i, v := range values {
-		if v == "" {
-			result[i] = false
-			continue
-		}
-
-		// Try to parse as bool
-		boolVal, err := strconv.ParseBool(v)
-		if err != nil {
-			// Check for common boolean representations
-			switch strings.ToLower(v) {
-			case "yes", "y", "1":
-				result[i] = true
-			case "no", "n", "0":
-				result[i] = false
-			default:
-				return nil, false
-			}
-		} else {
-			result[i] = boolVal
-		}
-	}
-	return result, true
 }
 
 // Helper function to parse int values from strings
