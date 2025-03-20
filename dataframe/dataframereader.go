@@ -3,14 +3,13 @@ package dataframe
 import (
 	"bufio"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strconv"
 	"strings"
 	"teddy/dataframe/series"
-
-	"github.com/rotisserie/eris"
 )
 
 // DataFrameReader provides a fluent API for reading data into a DataFrame
@@ -67,7 +66,7 @@ func (dfr *DataFrameReader) Load() (*DataFrame, error) {
 	// Validate and standardize options
 	optionsStandard, err := dfr.options.standardizeOptions()
 	if err != nil {
-		return nil, eris.Wrap(err, "Error standardizing options")
+		return nil, fmt.Errorf("Error standardizing options: %w", err)
 	}
 
 	// If reading from a string
@@ -81,17 +80,17 @@ func (dfr *DataFrameReader) Load() (*DataFrame, error) {
 		case "csv":
 			df, err := readCSVFromString(dfr.stringValue, optionsStandard)
 			if err != nil {
-				return nil, eris.Wrap(err, "Error reading CSV from string")
+				return nil, fmt.Errorf("Error reading CSV from string: %w", err)
 			}
 			return df, nil
 		default:
-			return nil, eris.New(fmt.Sprintf("Unsupported file type for string input: %s", dfr.fileType))
+			return nil, fmt.Errorf("Unsupported file type for string input: %s", dfr.fileType)
 		}
 	}
 
 	// If reading from a file
 	if dfr.filePath == "" {
-		return nil, eris.New("No file path or string value provided")
+		return nil, errors.New("No file path or string value provided")
 	}
 
 	// Auto-detect file type if not specified
@@ -104,17 +103,17 @@ func (dfr *DataFrameReader) Load() (*DataFrame, error) {
 	case "csv":
 		df, err := readCSVFromFile(dfr.filePath, optionsStandard)
 		if err != nil {
-			return nil, eris.Wrap(err, "Error reading CSV file")
+			return nil, fmt.Errorf("Error reading CSV file: %w", err)
 		}
 		return df, nil
 	case "parquet":
 		df, err := ReadParquet(dfr.filePath)
 		if err != nil {
-			return nil, eris.Wrap(err, "Error reading Parquet file")
+			return nil, fmt.Errorf("Error reading Parquet file: %w", err)
 		}
 		return df, nil
 	default:
-		return nil, eris.New(fmt.Sprintf("Unsupported file type: %s", dfr.fileType))
+		return nil, fmt.Errorf("Unsupported file type: %s", dfr.fileType)
 	}
 }
 
@@ -136,7 +135,7 @@ func readCSVFromFile(path string, options *Options) (*DataFrame, error) {
 	// Open the file
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, eris.Wrapf(err, "Error opening file: %s", path)
+		return nil, fmt.Errorf("Error opening file: %s, %w", path, err)
 	}
 	defer file.Close()
 
@@ -168,7 +167,7 @@ func readCSV(reader io.Reader, options *Options) (*DataFrame, error) {
 	// If memory becomes an issue, we can implement a chunked reading approach
 	records, err := csvReader.ReadAll()
 	if err != nil {
-		return nil, eris.Wrap(err, "Error reading CSV data")
+		return nil, fmt.Errorf("Error reading CSV data: %w", err)
 	}
 
 	// Handle empty file

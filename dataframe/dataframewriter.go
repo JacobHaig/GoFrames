@@ -2,11 +2,11 @@ package dataframe
 
 import (
 	"encoding/csv"
+	"errors"
+	"fmt"
 	"os"
 
 	convert "teddy/dataframe/convert"
-
-	"github.com/rotisserie/eris"
 )
 
 type DataFrameWriter struct {
@@ -53,30 +53,30 @@ func (dfw *DataFrameWriter) Option(key string, value any) *DataFrameWriter {
 func (dfw *DataFrameWriter) Save() error {
 	optionsStandard, err := dfw.options.standardizeOptions()
 	if err != nil {
-		return eris.Wrap(err, "Error standardizing options")
+		return fmt.Errorf("error standardizing options: %w", err)
 	}
 
 	switch dfw.fileType {
 	case "csv":
 		err := WriteCSV(dfw.df, dfw.filePath, optionsStandard)
 		if err != nil {
-			return eris.Wrap(err, "Error writing csv")
+			return fmt.Errorf("error writing csv: %w", err)
 		}
 		return nil
 	}
 
-	return eris.New("Unknown file type")
+	return errors.New("unknown file type")
 }
 
 func WriteCSV(df *DataFrame, path string, options *Options) error {
 	if df.Width() == 0 {
-		return eris.New("Cannot write empty DataFrame to CSV")
+		return errors.New("cannot write empty DataFrame to CSV")
 	}
 
 	// Create the file
 	file, err := os.Create(path)
 	if err != nil {
-		return eris.Wrap(err, "Error creating file")
+		return fmt.Errorf("error creating file: %w", err)
 	}
 	defer file.Close()
 
@@ -89,7 +89,7 @@ func WriteCSV(df *DataFrame, path string, options *Options) error {
 		header := df.ColumnNames()
 		err := csvWriter.Write(header)
 		if err != nil {
-			return eris.Wrap(err, "Error writing header to CSV")
+			return fmt.Errorf("error writing header to CSV: %w", err)
 		}
 	}
 
@@ -106,7 +106,7 @@ func WriteCSV(df *DataFrame, path string, options *Options) error {
 
 		err := csvWriter.Write(row)
 		if err != nil {
-			return eris.Wrap(err, "Error writing row to CSV")
+			return fmt.Errorf("error writing row to CSV: %w", err)
 		}
 	}
 
@@ -114,7 +114,7 @@ func WriteCSV(df *DataFrame, path string, options *Options) error {
 	csvWriter.Flush()
 
 	if err := csvWriter.Error(); err != nil {
-		return eris.Wrap(err, "Error flushing CSV writer")
+		return fmt.Errorf("error flushing CSV writer: %w", err)
 	}
 
 	return nil

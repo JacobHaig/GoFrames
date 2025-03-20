@@ -4,10 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 	"strings"
-
-	"github.com/rotisserie/eris"
 )
 
 type OptionsMap map[string]any
@@ -60,19 +57,19 @@ func flattenInterface[T any](acc []T, arr any) ([]T, error) {
 		for _, elem := range v {
 			acc, err = flattenInterface(acc, elem)
 			if err != nil {
-				return nil, eris.Wrap(err, "Error flattening interface")
+				return nil, errors.New("Error flattening interface")
 			}
 		}
 	case [][]any:
 		for _, elem := range v {
 			acc, err = flattenInterface(acc, elem)
 			if err != nil {
-				return nil, eris.Wrap(err, "Error flattening interface")
+				return nil, errors.New("Error flattening interface")
 			}
 		}
 		return acc, nil
 	default:
-		return nil, eris.Wrap(errors.New("Could not flatten array of type "+fmt.Sprintf("%T", arr)), "Error flattening interface")
+		return nil, errors.New("Could not flatten array of type " + fmt.Sprintf("%T", arr))
 	}
 
 	return acc, nil
@@ -144,43 +141,4 @@ func allTrue(values []bool) bool {
 		}
 	}
 	return true
-}
-
-func PrintTrace(err error) {
-	upErr := eris.Unpack(err)
-
-	var str string
-	invert := false
-
-	if invert {
-		if upErr.ErrExternal != nil {
-			str += fmt.Sprintf("%+v\n", upErr.ErrExternal)
-		}
-		str += fmt.Sprintf("%+v\n", upErr.ErrRoot.Msg)
-		for _, frame := range upErr.ErrRoot.Stack {
-			str += fmt.Sprintf("%s -> %s:%d\n", frame.Name, removeParentFolder(frame.File), frame.Line)
-		}
-	} else {
-		for i := len(upErr.ErrRoot.Stack) - 1; i >= 0; i-- {
-			frame := upErr.ErrRoot.Stack[i]
-			str += fmt.Sprintf("%s -> %s:%d\n", frame.Name, removeParentFolder(frame.File), frame.Line)
-		}
-		str += fmt.Sprintf("%+v\n", upErr.ErrRoot.Msg)
-		if upErr.ErrExternal != nil {
-			str += fmt.Sprintf("%+v\n", upErr.ErrExternal)
-		}
-	}
-
-	if err != nil {
-		fmt.Print(str)
-		os.Exit(1)
-	}
-}
-
-// Function that removes the parent path from the file path
-func removeParentFolder(parentfolder string) string {
-	SplitLabel := "GoFrames" // Change this to the parent directory name
-	SplitPath := strings.Split(parentfolder, SplitLabel+"/")
-
-	return SplitPath[1]
 }

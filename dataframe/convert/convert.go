@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/rotisserie/eris"
 )
 
 // This file is used to do type conversions on a series.
@@ -40,13 +38,13 @@ func ConvertValue(value any, newType string) (any, error) {
 	case "int":
 		i, err := convertToInt(value)
 		if err != nil {
-			return nil, eris.Wrapf(err, "Error converting value to type %s", newType)
+			return nil, fmt.Errorf("Error converting value to type %s: %w", newType, err)
 		}
 		return i, nil
 	case "float", "float64":
 		f, err := convertToFloat(value)
 		if err != nil {
-			return nil, eris.Wrapf(err, "Error converting value to type %s", newType)
+			return nil, fmt.Errorf("Error converting value to type %s: %w", newType, err)
 		}
 		return f, nil
 	case "string":
@@ -56,7 +54,7 @@ func ConvertValue(value any, newType string) (any, error) {
 	case "time", "datetime":
 		t, err := convertToTime(value)
 		if err != nil {
-			return nil, eris.Wrapf(err, "Error converting value to type %s", newType)
+			return nil, fmt.Errorf("Error converting value to type %s: %w", newType, err)
 		}
 		return t, nil
 	}
@@ -99,7 +97,7 @@ func convertToInt(value any) (int, error) {
 		return convertStringToInt(v)
 	}
 	errorMessage := fmt.Sprintf("error: could not convert value of type %T to int. The Value is %v", value, value)
-	return 0, eris.New(errorMessage)
+	return 0, errors.New(errorMessage)
 }
 
 func convertStringToInt(value string) (int, error) {
@@ -118,7 +116,7 @@ func convertStringToInt(value string) (int, error) {
 		// Try to parse as float and then convert to int
 		f, err := strconv.ParseFloat(value, 64)
 		if err != nil {
-			return 0, eris.Wrapf(err, "Error converting string '%s' to int", value)
+			return 0, fmt.Errorf("Error converting string '%s' to int: %w", value, err)
 		}
 		return int(f), nil
 	}
@@ -160,7 +158,7 @@ func convertToFloat(value any) (float64, error) {
 		return convertStringToFloat(v)
 	}
 	errorMessage := fmt.Sprintf("error: could not convert value of type %T to float. The Value is %v", value, value)
-	return 0, eris.New(errorMessage)
+	return 0, errors.New(errorMessage)
 }
 
 func convertStringToFloat(value string) (float64, error) {
@@ -176,7 +174,7 @@ func convertStringToFloat(value string) (float64, error) {
 
 	f, err = strconv.ParseFloat(value, 64)
 	if err != nil {
-		return 0, eris.Wrapf(err, "Error converting string '%s' to float", value)
+		return 0, fmt.Errorf("Error converting string '%s' to float: %w", value, err)
 	}
 	return f, nil
 }
@@ -219,7 +217,7 @@ func convertToTime(value any) (time.Time, error) {
 		return time.Unix(int64(v.(int64)), 0), nil
 	}
 	errorMessage := fmt.Sprintf("error: could not convert value of type %T to time. The Value is %v", value, value)
-	return time.Time{}, eris.New(errorMessage)
+	return time.Time{}, errors.New(errorMessage)
 }
 
 func parseTime(value string) (time.Time, error) {
@@ -243,7 +241,7 @@ func parseTime(value string) (time.Time, error) {
 		}
 	}
 
-	return time.Time{}, eris.New("could not parse string as time")
+	return time.Time{}, errors.New("could not parse string as time")
 }
 
 // Helper function for max of two ints (Go < 1.21 compatibility)

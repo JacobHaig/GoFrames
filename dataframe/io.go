@@ -10,7 +10,6 @@ import (
 	"strings"
 	"teddy/dataframe/series"
 
-	"github.com/rotisserie/eris"
 	"github.com/xitongsys/parquet-go-source/local"
 	"github.com/xitongsys/parquet-go/reader"
 )
@@ -26,7 +25,7 @@ func ReadCSVtoRows(path string, options ...OptionsMap) ([][]string, error) {
 	// Read the file
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, eris.Wrapf(err, "Error reading file: %s", path)
+		return nil, fmt.Errorf("Error reading file: %s: %w", path, err)
 	}
 	defer file.Close()
 
@@ -52,9 +51,9 @@ func ReadCSVtoRows(path string, options ...OptionsMap) ([][]string, error) {
 	if err != nil {
 		// ParseError
 		if _, ok := err.(*csv.ParseError); ok {
-			return nil, eris.Wrapf(err, "Error parsing CSV file: %s", path)
+			return nil, fmt.Errorf("Error parsing CSV file: %s: %w", path, err)
 		}
-		return nil, eris.Wrapf(err, "Error reading CSV file: %s", path)
+		return nil, fmt.Errorf("Error reading CSV file: %s: %w", path, err)
 	}
 
 	if rows == nil {
@@ -80,13 +79,13 @@ func ReadCSVtoColumns(path string, options ...OptionsMap) ([][]string, error) {
 func ReadParquet(filename string, options ...OptionsMap) (*DataFrame, error) {
 	fr, err := local.NewLocalFileReader(filename)
 	if err != nil {
-		return nil, eris.Wrapf(err, "Error reading parquet file: %s", filename)
+		return nil, fmt.Errorf("Error reading parquet file: %s: %w", filename, err)
 	}
 	defer fr.Close()
 
 	pr, err := reader.NewParquetColumnReader(fr, 4)
 	if err != nil {
-		return nil, eris.Wrap(err, "Error creating parquet column reader")
+		return nil, fmt.Errorf("Error creating parquet column reader: %w", err)
 	}
 	defer pr.ReadStop()
 
@@ -99,7 +98,7 @@ func ReadParquet(filename string, options ...OptionsMap) (*DataFrame, error) {
 		colName := pr.SchemaHandler.GetExName(int(i) + 1)
 		values, _, _, err := pr.ReadColumnByIndex(i, rowCount)
 		if err != nil {
-			return nil, eris.Wrapf(err, "Error reading column %d", i)
+			return nil, fmt.Errorf("Error reading column %d: %w", i, err)
 		}
 
 		// Detect type and create appropriate typed series
