@@ -89,8 +89,8 @@ func (dfr *DataFrameReader) Load() (*DataFrame, error) {
 	}
 
 	// If reading from a file
-	if dfr.filePath == "" {
-		return nil, errors.New("No file path or string value provided")
+	if dfr.filePath == "" && dfr.stringValue == "" {
+		return nil, errors.New("no file path or string value provided")
 	}
 
 	// Auto-detect file type if not specified

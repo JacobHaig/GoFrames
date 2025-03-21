@@ -8,7 +8,9 @@ import (
 	"time"
 )
 
-// This file is used to do type conversions on a series.
+// This file is used to do type conversions on a datatypes.
+
+// Some of the possible datatypes are listed below:
 
 // string
 // bytes
@@ -29,8 +31,6 @@ import (
 // period
 // mixed
 
-// This file is used to do type conversions on a series.
-
 // convertValue converts a value to a new type
 // It's used for the older Series implementation for backward compatibility
 func ConvertValue(value any, newType string) (any, error) {
@@ -38,13 +38,13 @@ func ConvertValue(value any, newType string) (any, error) {
 	case "int":
 		i, err := convertToInt(value)
 		if err != nil {
-			return nil, fmt.Errorf("Error converting value to type %s: %w", newType, err)
+			return nil, fmt.Errorf("error converting value to type %s: %w", newType, err)
 		}
 		return i, nil
 	case "float", "float64":
 		f, err := convertToFloat(value)
 		if err != nil {
-			return nil, fmt.Errorf("Error converting value to type %s: %w", newType, err)
+			return nil, fmt.Errorf("error converting value to type %s: %w", newType, err)
 		}
 		return f, nil
 	case "string":
@@ -54,7 +54,7 @@ func ConvertValue(value any, newType string) (any, error) {
 	case "time", "datetime":
 		t, err := convertToTime(value)
 		if err != nil {
-			return nil, fmt.Errorf("Error converting value to type %s: %w", newType, err)
+			return nil, fmt.Errorf("error converting value to type %s: %w", newType, err)
 		}
 		return t, nil
 	}
@@ -116,7 +116,7 @@ func convertStringToInt(value string) (int, error) {
 		// Try to parse as float and then convert to int
 		f, err := strconv.ParseFloat(value, 64)
 		if err != nil {
-			return 0, fmt.Errorf("Error converting string '%s' to int: %w", value, err)
+			return 0, fmt.Errorf("error converting string '%s' to int: %w", value, err)
 		}
 		return int(f), nil
 	}
@@ -174,7 +174,7 @@ func convertStringToFloat(value string) (float64, error) {
 
 	f, err = strconv.ParseFloat(value, 64)
 	if err != nil {
-		return 0, fmt.Errorf("Error converting string '%s' to float: %w", value, err)
+		return 0, fmt.Errorf("error converting string '%s' to float: %w", value, err)
 	}
 	return f, nil
 }

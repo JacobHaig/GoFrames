@@ -10,15 +10,16 @@ import (
 type OptionsMap map[string]any
 
 func standardizeOptions(options ...OptionsMap) OptionsMap {
+	result := OptionsMap{}
 	if len(options) == 0 {
-		return OptionsMap{}
+		return result
 	}
-	// Lowercase all keys
+
+	// Copy with lowercase keys
 	for k, v := range options[0] {
-		delete(options[0], k)
-		options[0][strings.ToLower(k)] = v
+		result[strings.ToLower(k)] = v
 	}
-	return options[0]
+	return result
 }
 
 func (options OptionsMap) getOption(key string, defaultValue any) any {

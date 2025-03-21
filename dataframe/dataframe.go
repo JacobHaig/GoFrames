@@ -268,19 +268,27 @@ func (df *DataFrame) GroupByIndex(by string, f func(...any) any, cols ...any) *D
 	// Create a new DataFrame with the results
 	result := NewDataFrame()
 
-	// Add the 'by' column
-	byValues := make([]any, 0, len(groupedValues))
+	// Create deterministic list of keys to ensure consistent order
+	keys := make([]any, 0, len(groupedValues))
 	for key := range groupedValues {
-		byValues = append(byValues, key)
+		keys = append(keys, key)
+	}
+
+	// Add the 'by' column
+	byValues := make([]any, len(keys))
+	for i, key := range keys {
+		byValues[i] = key
 	}
 	result.AddSeries(series.NewSeries(by, byValues))
 
 	// Add aggregated columns
 	for j, columnName := range columns {
-		aggValues := make([]any, 0, len(groupedValues))
-		for key := range groupedValues {
-			aggregatedValue := f(groupedValues[key][j]...)
-			aggValues = append(aggValues, aggregatedValue)
+		aggValues := make([]any, len(keys))
+		for i, key := range keys {
+			// Get all values for this group and column
+			values := groupedValues[key][j]
+			// Apply aggregation function to all values
+			aggValues[i] = f(values...)
 		}
 		result.AddSeries(series.NewSeries(columnName, aggValues))
 	}

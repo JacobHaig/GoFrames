@@ -25,7 +25,7 @@ func ReadCSVtoRows(path string, options ...OptionsMap) ([][]string, error) {
 	// Read the file
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("Error reading file: %s: %w", path, err)
+		return nil, fmt.Errorf("error reading file: %s: %w", path, err)
 	}
 	defer file.Close()
 
@@ -51,9 +51,9 @@ func ReadCSVtoRows(path string, options ...OptionsMap) ([][]string, error) {
 	if err != nil {
 		// ParseError
 		if _, ok := err.(*csv.ParseError); ok {
-			return nil, fmt.Errorf("Error parsing CSV file: %s: %w", path, err)
+			return nil, fmt.Errorf("error parsing CSV file: %s: %w", path, err)
 		}
-		return nil, fmt.Errorf("Error reading CSV file: %s: %w", path, err)
+		return nil, fmt.Errorf("error reading CSV file: %s: %w", path, err)
 	}
 
 	if rows == nil {
