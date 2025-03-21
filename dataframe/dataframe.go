@@ -223,78 +223,7 @@ func (df *DataFrame) FilterMap(f func(map[string]any) bool) *DataFrame {
 	return df
 }
 
-// GroupByIndex groups rows by a column and applies an aggregation function to other columns.
-//
-// The function takes variable arguments of any type and returns a single value.
-func (df *DataFrame) GroupByIndex(by string, f func(...any) any, cols ...any) *DataFrame {
-	// Get the column names to aggregate
-	columns, err := df.GetColumnNames(cols...)
-	if err != nil {
-		fmt.Println(err)
-		return df
-	}
-
-	// Get the 'by' column
-	byColumnIndex, exists := df.GetColumnIndex(by)
-	if !exists {
-		fmt.Println("Column does not exist:", by)
-		return df
-	}
-	bySeries := df.series[byColumnIndex]
-
-	// Create maps to collect values for each group
-	groupedValues := make(map[any][][]any)
-
-	// Group the values
-	for i := 0; i < df.Height(); i++ {
-		// Get the group key (value from 'by' column)
-		key := bySeries.Get(i)
-
-		// If this is the first value for this key, initialize the slice
-		if _, ok := groupedValues[key]; !ok {
-			groupedValues[key] = make([][]any, len(columns))
-			for j := range columns {
-				groupedValues[key][j] = make([]any, 0)
-			}
-		}
-
-		// Add values from other columns to the group
-		for j, columnName := range columns {
-			series := df.GetSeries(columnName)
-			groupedValues[key][j] = append(groupedValues[key][j], series.Get(i))
-		}
-	}
-
-	// Create a new DataFrame with the results
-	result := NewDataFrame()
-
-	// Create deterministic list of keys to ensure consistent order
-	keys := make([]any, 0, len(groupedValues))
-	for key := range groupedValues {
-		keys = append(keys, key)
-	}
-
-	// Add the 'by' column
-	byValues := make([]any, len(keys))
-	for i, key := range keys {
-		byValues[i] = key
-	}
-	result.AddSeries(series.NewSeries(by, byValues))
-
-	// Add aggregated columns
-	for j, columnName := range columns {
-		aggValues := make([]any, len(keys))
-		for i, key := range keys {
-			// Get all values for this group and column
-			values := groupedValues[key][j]
-			// Apply aggregation function to all values
-			aggValues[i] = f(values...)
-		}
-		result.AddSeries(series.NewSeries(columnName, aggValues))
-	}
-
-	return result
-}
+// Remove GroupByIndex as it's replaced by the aggregate.GroupBy function
 
 func (df *DataFrame) findColumnsThatDontExist(columnNames []string) []string {
 	columns := []string{}

@@ -7,6 +7,7 @@ import (
 )
 
 func TestNewDataFrame(t *testing.T) {
+	// Tests DataFrame creation, adding series, and basic operations
 	df := NewDataFrame()
 
 	// Add typed series instead of generic series
@@ -34,6 +35,7 @@ func TestNewDataFrame(t *testing.T) {
 }
 
 func TestFilterMap(t *testing.T) {
+	// Tests filtering DataFrame rows using map-based predicates
 	df := NewDataFrame()
 
 	df = df.AddSeries(series.NewStringSeries("First Name", []string{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
@@ -72,6 +74,7 @@ func TestFilterMap(t *testing.T) {
 }
 
 func TestDeleteColumn(t *testing.T) {
+	// Tests removing columns from DataFrame
 	df := NewDataFrame()
 
 	df = df.AddSeries(series.NewStringSeries("First Name", []string{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
@@ -101,6 +104,7 @@ func TestDeleteColumn(t *testing.T) {
 }
 
 func TestApplyIndex(t *testing.T) {
+	// Tests applying row-wise transformations to create new columns
 	df := NewDataFrame()
 
 	df = df.AddSeries(series.NewStringSeries("First Name", []string{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
@@ -176,6 +180,7 @@ func TestApplyIndex(t *testing.T) {
 }
 
 func TestTypeConversion(t *testing.T) {
+	// Tests converting column data types and applying transformations
 	df := NewDataFrame()
 
 	df = df.AddSeries(series.NewStringSeries("First Name", []string{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
@@ -237,6 +242,7 @@ func TestTypeConversion(t *testing.T) {
 }
 
 func TestComplexTypeConversion(t *testing.T) {
+	// Tests multi-step type conversions and transformations
 	df := NewDataFrame()
 
 	df = df.AddSeries(series.NewStringSeries("First Name", []string{"John", "Jack", "Tyler", "Jill", "Kenny", "Aaron"}))
@@ -271,48 +277,8 @@ func TestComplexTypeConversion(t *testing.T) {
 	}
 }
 
-func TestGroupByIndex(t *testing.T) {
-	df := NewDataFrame()
-
-	df = df.AddSeries(series.NewStringSeries("First Name", []string{"John", "Jack", "John", "Jill", "Jack", "Aaron"}))
-	df = df.AddSeries(series.NewStringSeries("Last Name", []string{"Doe", "Smith", "Doe", "Brown", "Smith", "Williams"}))
-	df = df.AddSeries(series.NewIntSeries("Age", []int{35, 23, 48, 63, 28, 32}))
-
-	// Group by First Name and sum the Ages
-	df = df.GroupByIndex("First Name", func(list ...any) any {
-		// Sum of ages
-		sum := 0
-		for _, value := range list {
-			sum += value.(int)
-		}
-		return sum
-	}, "Age")
-
-	// Verify the result
-	row, col := df.Shape()
-	if row != 4 || col != 2 {
-		t.Errorf("Expected 4 rows and 2 columns, got %d rows and %d columns", row, col)
-	}
-
-	// Check specifically the Jack group
-	df_filtered := df.FilterMap(func(m map[string]any) bool {
-		return m["First Name"].(string) == "Jack"
-	})
-
-	// Jack's ages were 23 + 28 = 51
-	expected := 51
-	ageSeries := df_filtered.GetSeries("Age")
-	if ageSeries == nil || ageSeries.Len() == 0 {
-		t.Errorf("Age series not found or empty for Jack")
-	} else {
-		actual := ageSeries.Get(0).(int)
-		if actual != expected {
-			t.Errorf("Expected summed age for Jack to be %d, got %d", expected, actual)
-		}
-	}
-}
-
 func TestReadCSV(t *testing.T) {
+	// Tests reading CSV data into DataFrame with automatic type inference
 	// This is a simple CSV content for testing
 	csvContent := `Name,Age,IsStudent
 John,25,true
@@ -367,6 +333,7 @@ Bob,22,true`
 }
 
 func TestTypedSeriesCreation(t *testing.T) {
+	// Tests creating series with different data types
 	// Test creating different types of Series
 	intSeries := series.NewIntSeries("Numbers", []int{1, 2, 3, 4, 5})
 	if intSeries.Type().String() != "int" {
@@ -406,6 +373,7 @@ func TestTypedSeriesCreation(t *testing.T) {
 }
 
 func TestMemoryUsage(t *testing.T) {
+	// Demonstrates memory usage differences between typed and generic series
 	// This isn't a real test, but demonstrates memory usage
 	// Create a DataFrame with typed and untyped series
 

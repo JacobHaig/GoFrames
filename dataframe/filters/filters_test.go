@@ -8,6 +8,7 @@ import (
 )
 
 func TestBasicFilters(t *testing.T) {
+	// Tests basic comparison filters (GreaterThan, LessThan, Equal)
 	// Test GreaterThan
 	gtFilter := filters.GreaterThan(5)
 	if gtFilter(3) {
@@ -37,6 +38,7 @@ func TestBasicFilters(t *testing.T) {
 }
 
 func TestLogicalOperators(t *testing.T) {
+	// Tests logical operators (And, Or, Not) with numeric comparisons
 	// Test And
 	andFilter := filters.And(
 		filters.GreaterThan(5),
@@ -78,6 +80,7 @@ func TestLogicalOperators(t *testing.T) {
 }
 
 func TestStringFilters(t *testing.T) {
+	// Tests string-specific filters (Contains, StartsWith, EndsWith)
 	// Test Contains
 	containsFilter := filters.Contains("world")
 	if !containsFilter("hello world") {
@@ -107,6 +110,7 @@ func TestStringFilters(t *testing.T) {
 }
 
 func TestApply(t *testing.T) {
+	// Tests applying filters to series and getting matching indices
 	// Test with IntSeries
 	intValues := []int{1, 5, 10, 15, 20}
 	intSeries := series.NewIntSeries("numbers", intValues)
@@ -133,6 +137,7 @@ func TestApply(t *testing.T) {
 }
 
 func TestApplyToDF(t *testing.T) {
+	// Tests filtering DataFrames by applying a filter to a specific column
 	// Create test dataframe
 	intSeries := series.NewIntSeries("numbers", []int{1, 5, 10, 15, 20})
 	stringSeries := series.NewStringSeries("fruits", []string{"apple", "banana", "cherry", "date", "elderberry"})
@@ -154,6 +159,7 @@ func TestApplyToDF(t *testing.T) {
 }
 
 func TestAdvancedFilters(t *testing.T) {
+	// Tests advanced filters (IsNull, IsNotNull, In) and complex filter combinations
 	// Test IsNull/IsNotNull
 	mixedValues := []any{1, 5.5, "test", nil, 10}
 	mixedSeries := series.NewGenericSeries("mixed", mixedValues)

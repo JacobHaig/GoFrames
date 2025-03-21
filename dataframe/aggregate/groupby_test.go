@@ -9,6 +9,7 @@ import (
 
 // createTestDataFrame creates a sample DataFrame for testing
 func createTestDataFrame() *dataframe.DataFrame {
+	// Creates a test DataFrame with categories, regions, and sales data
 	categories := []string{"A", "B", "A", "B", "A", "C", "C"}
 	regions := []string{"East", "East", "West", "West", "East", "West", "East"}
 	sales := []int{100, 200, 150, 250, 120, 300, 180}
@@ -21,6 +22,7 @@ func createTestDataFrame() *dataframe.DataFrame {
 }
 
 func TestGroupBySingleColumnSingleAggregation(t *testing.T) {
+	// Tests grouping by a single column with one aggregation function
 	df := createTestDataFrame()
 
 	// Group by a single column with one aggregation
@@ -64,6 +66,7 @@ func TestGroupBySingleColumnSingleAggregation(t *testing.T) {
 }
 
 func TestGroupByMultipleColumnsSingleAggregation(t *testing.T) {
+	// Tests grouping by multiple columns with one aggregation function
 	df := createTestDataFrame()
 
 	// Group by multiple columns with one aggregation
@@ -119,6 +122,7 @@ func TestGroupByMultipleColumnsSingleAggregation(t *testing.T) {
 }
 
 func TestGroupBySingleColumnMultipleAggregations(t *testing.T) {
+	// Tests grouping by a single column with multiple aggregation functions
 	df := createTestDataFrame()
 
 	// Group with multiple aggregations
@@ -164,6 +168,7 @@ func TestGroupBySingleColumnMultipleAggregations(t *testing.T) {
 }
 
 func TestGroupByWithDifferentAggregationTypes(t *testing.T) {
+	// Tests grouping with different types of aggregation functions (Mean, Count)
 	df := createTestDataFrame()
 
 	// Group with different aggregation types

@@ -8,6 +8,7 @@ import (
 )
 
 func TestBasicAggregators(t *testing.T) {
+	// Tests basic aggregator functions (Sum, Mean, Min, Max) on simple values
 	// Test Sum
 	sumAgg := aggregate.Sum()
 	result := sumAgg(1, 2, 3, 4, 5)
@@ -38,6 +39,7 @@ func TestBasicAggregators(t *testing.T) {
 }
 
 func TestApply(t *testing.T) {
+	// Tests applying aggregator functions to series data
 	// Test with IntSeries
 	intValues := []int{1, 2, 3, 4, 5}
 	intSeries := series.NewIntSeries("numbers", intValues)
@@ -78,6 +80,7 @@ func TestApply(t *testing.T) {
 }
 
 func TestApplyToDF(t *testing.T) {
+	// Tests applying aggregator functions to DataFrame columns
 	// Create test dataframe
 	intValues := []int{1, 2, 3, 4, 5}
 	intSeries := series.NewIntSeries("numbers", intValues)
@@ -101,6 +104,7 @@ func TestApplyToDF(t *testing.T) {
 }
 
 func TestCombine(t *testing.T) {
+	// Tests combining multiple aggregators into a single operation
 	// Create a combined aggregator
 	combined := aggregate.Combine(
 		aggregate.Sum(),
